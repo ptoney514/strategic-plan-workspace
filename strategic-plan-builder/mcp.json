@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "strategic-plan-builder": {
+      "command": "node",
+      "args": ["./mcp-server.js"],
+      "env": {
+        "NEXT_PUBLIC_SUPABASE_URL": "${NEXT_PUBLIC_SUPABASE_URL}",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY": "${NEXT_PUBLIC_SUPABASE_ANON_KEY}"
+      }
+    },
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--read-only",
+        "--project-ref=qsftokjevxueboldvmzc"
+      ],
+      "env": {
+        "SUPABASE_SERVICE_KEY": "${SUPABASE_SERVICE_ROLE_KEY}"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    }
+  }
+}
