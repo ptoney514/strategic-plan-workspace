@@ -12,7 +12,7 @@ import {
   Upload,
   RefreshCw
 } from 'lucide-react';
-import { useDistrict } from '../hooks/useDistrict';
+import { useDistrict } from '../hooks/useDistricts';
 import { useGoals } from '../hooks/useGoals';
 import { useMetrics } from '../hooks/useMetrics';
 import { recalculateDistrictProgress } from '../lib/services/progressService';
