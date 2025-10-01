@@ -11,6 +11,7 @@ import { SlidePanel } from '../components/SlidePanel';
 import { OverallProgressBar } from '../components/OverallProgressBar';
 import { ProgressOverrideModal } from '../components/ProgressOverrideModal';
 import { updateProgressOverride } from '../lib/services/progressService';
+import { ToastContainer, useToast, toast } from '../components/Toast';
 import type { Goal } from '../lib/types';
 
 export function DistrictDashboard() {
@@ -24,6 +25,7 @@ export function DistrictDashboard() {
   const [showSlidePanel, setShowSlidePanel] = useState(false);
   const [progressOverrideGoal, setProgressOverrideGoal] = useState<Goal | null>(null);
   const [isAdmin] = useState(true); // TODO: Replace with actual auth check
+  const { messages, removeMessage } = useToast();
 
   const isLoading = districtLoading || goalsLoading || metricsLoading;
 
@@ -163,29 +165,32 @@ export function DistrictDashboard() {
                           </div>
                         </Link>
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
-                            style={{
-                              backgroundColor: status === 'on-target' ? '#10b98120' : 
-                                             status === 'monitoring' ? '#f59e0b20' :
-                                             status === 'critical' ? '#ef444420' :
-                                             status === 'off-target' ? '#fb923c20' : '#6b728020',
-                              color: status === 'on-target' ? '#059669' : 
-                                    status === 'monitoring' ? '#d97706' :
-                                    status === 'critical' ? '#dc2626' :
-                                    status === 'off-target' ? '#ea580c' : '#4b5563'
-                            }}>
-                            <span className="w-1.5 h-1.5 rounded-full"
+                          {/* Status Badge - Only for Level 1 & 2 (Goals & Sub-goals) */}
+                          {goal.level !== 0 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
                               style={{
-                                backgroundColor: status === 'on-target' ? '#059669' : 
-                                                status === 'monitoring' ? '#d97706' :
-                                                status === 'critical' ? '#dc2626' :
-                                                status === 'off-target' ? '#ea580c' : '#4b5563'
-                              }} />
-                            {status === 'on-target' ? 'On Target' :
-                             status === 'monitoring' ? 'Monitoring' :
-                             status === 'critical' ? 'Critical' :
-                             status === 'off-target' ? 'Off Target' : 'Not Started'}
-                          </span>
+                                backgroundColor: status === 'on-target' ? '#10b98120' :
+                                               status === 'monitoring' ? '#f59e0b20' :
+                                               status === 'critical' ? '#ef444420' :
+                                               status === 'off-target' ? '#fb923c20' : '#6b728020',
+                                color: status === 'on-target' ? '#059669' :
+                                      status === 'monitoring' ? '#d97706' :
+                                      status === 'critical' ? '#dc2626' :
+                                      status === 'off-target' ? '#ea580c' : '#4b5563'
+                              }}>
+                              <span className="w-1.5 h-1.5 rounded-full"
+                                style={{
+                                  backgroundColor: status === 'on-target' ? '#059669' :
+                                                  status === 'monitoring' ? '#d97706' :
+                                                  status === 'critical' ? '#dc2626' :
+                                                  status === 'off-target' ? '#ea580c' : '#4b5563'
+                                }} />
+                              {status === 'on-target' ? 'On Target' :
+                               status === 'monitoring' ? 'Monitoring' :
+                               status === 'critical' ? 'Critical' :
+                               status === 'off-target' ? 'Off Target' : 'Not Started'}
+                            </span>
+                          )}
                           <GoalActions
                             goal={goal}
                             onEdit={() => setEditingGoal(goal)}
@@ -293,13 +298,24 @@ export function DistrictDashboard() {
           isOpen={!!progressOverrideGoal}
           onClose={() => setProgressOverrideGoal(null)}
           onSave={async (overrideValue, displayMode, reason) => {
-            await updateProgressOverride(progressOverrideGoal.id, {
-              overrideValue,
-              displayMode,
-              reason,
-              userId: undefined // TODO: Get from auth context
-            });
-            refetchGoals();
+            try {
+              await updateProgressOverride(progressOverrideGoal.id, {
+                overrideValue,
+                displayMode,
+                reason,
+                userId: undefined // TODO: Get from auth context
+              });
+              await refetchGoals();
+
+              if (overrideValue !== null) {
+                toast.success('Progress override saved successfully');
+              } else {
+                toast.success('Progress override cleared successfully');
+              }
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : 'Failed to update progress');
+              throw error; // Re-throw so modal can handle it
+            }
           }}
         />
       )}
@@ -435,6 +451,9 @@ export function DistrictDashboard() {
           </div>
         )}
       </SlidePanel>
+
+      {/* Toast Notifications */}
+      <ToastContainer messages={messages} onClose={removeMessage} />
     </div>
   );
 }
