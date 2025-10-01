@@ -1,25 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { AdminLayout } from '../components/AdminLayout';
-import { 
-  Target, 
-  TrendingUp, 
-  AlertCircle, 
+import {
+  Target,
+  TrendingUp,
+  AlertCircle,
   CheckCircle,
   Clock,
   BarChart3,
   FileText,
-  Upload
+  Upload,
+  RefreshCw
 } from 'lucide-react';
-import { useDistrict } from '../hooks/useDistricts';
+import { useDistrict } from '../hooks/useDistrict';
 import { useGoals } from '../hooks/useGoals';
 import { useMetrics } from '../hooks/useMetrics';
+import { recalculateDistrictProgress } from '../lib/services/progressService';
+import { ToastContainer, useToast, toast } from '../components/Toast';
 
 export function AdminDashboard() {
   const { slug } = useParams();
-  const { district } = useDistrict(slug!);
-  const { goals } = useGoals(district?.id);
-  const { metrics } = useMetrics(district?.id);
+  const { data: district } = useDistrict(slug!);
+  const { data: goals, refetch: refetchGoals } = useGoals(district?.id || '');
+  const { data: metrics } = useMetrics(district?.id || '');
+  const [isRecalculating, setIsRecalculating] = useState(false);
+  const { messages, removeMessage } = useToast();
   
   // Calculate status summary
   const statusSummary = goals?.reduce((acc, goal) => {
@@ -35,6 +40,22 @@ export function AdminDashboard() {
     const daysSinceUpdate = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24);
     return daysSinceUpdate > 30;
   }).length || 0;
+
+  // Handle batch recalculation
+  const handleRecalculateProgress = async () => {
+    if (!district?.id) return;
+
+    setIsRecalculating(true);
+    try {
+      await recalculateDistrictProgress(district.id);
+      await refetchGoals();
+      toast.success('Progress recalculated successfully for all goals');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to recalculate progress');
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
   
   const statusCards = [
     {
@@ -160,9 +181,26 @@ export function AdminDashboard() {
                 </Link>
               );
             })}
+
+            {/* Recalculate Progress Button */}
+            <button
+              onClick={handleRecalculateProgress}
+              disabled={isRecalculating || !district}
+              className="p-4 bg-card rounded-lg border border-border hover:shadow-md transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="inline-flex p-3 rounded-lg bg-indigo-500 text-white mb-3">
+                <RefreshCw className={`h-6 w-6 ${isRecalculating ? 'animate-spin' : ''}`} />
+              </div>
+              <h3 className="font-semibold text-foreground">
+                {isRecalculating ? 'Recalculating...' : 'Recalculate Progress'}
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Update all goal progress values
+              </p>
+            </button>
           </div>
         </div>
-        
+
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Goals Needing Attention */}
@@ -278,6 +316,9 @@ export function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Toast Notifications */}
+      <ToastContainer messages={messages} onClose={removeMessage} />
     </AdminLayout>
   );
 }
