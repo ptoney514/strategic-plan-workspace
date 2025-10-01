@@ -59,47 +59,83 @@ ${goal.overall_progress_override_reason ? `\nReason: ${goal.overall_progress_ove
 
   return (
     <div
-      className={`flex items-center gap-3 ${isAdmin && onClick ? 'cursor-pointer hover:opacity-80' : ''}`}
+      className={`flex items-center gap-3 group ${isAdmin && onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
       title={tooltipContent}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
     >
-      {/* Progress Bar */}
-      <div className="flex-1 min-w-[120px] max-w-[200px]">
-        <div className="w-full bg-secondary rounded-full h-2.5 overflow-hidden">
-          <div
-            className="h-full transition-all duration-500 ease-out"
-            style={{
-              width: `${Math.min(Math.max(progress, 0), 100)}%`,
-              backgroundColor: progressColor
-            }}
-          />
+      {/* Progress Bar Container with enhanced styling */}
+      <div className="flex-1 min-w-[140px] max-w-[220px]">
+        <div className="relative">
+          {/* Background track with shadow */}
+          <div className="w-full bg-secondary rounded-full h-3 overflow-hidden shadow-inner">
+            {/* Progress fill with gradient and animation */}
+            <div
+              className="h-full transition-all duration-700 ease-out relative"
+              style={{
+                width: `${Math.min(Math.max(progress, 0), 100)}%`,
+                background: `linear-gradient(90deg, ${progressColor}, ${progressColor}dd)`,
+                boxShadow: `0 0 8px ${progressColor}40`
+              }}
+            >
+              {/* Shine effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-20 animate-shimmer" />
+            </div>
+          </div>
+
+          {/* Hover overlay */}
+          {isAdmin && onClick && (
+            <div className="absolute inset-0 rounded-full border-2 border-transparent group-hover:border-primary/30 transition-all duration-200" />
+          )}
         </div>
       </div>
 
-      {/* Label */}
+      {/* Label with enhanced typography */}
       {showLabel && label && (
         <div className="flex items-center gap-2">
           <span
-            className="text-sm font-semibold whitespace-nowrap"
-            style={{ color: progressColor }}
+            className="text-sm font-bold whitespace-nowrap transition-all duration-200 group-hover:scale-105"
+            style={{
+              color: progressColor,
+              textShadow: `0 1px 2px ${progressColor}20`
+            }}
           >
             {label}
           </span>
           {isManual && (
-            <span className="text-xs text-muted-foreground" title="Manually overridden by admin">
-              (Manual)
+            <span
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full"
+              title="Manually overridden by admin"
+            >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+              </svg>
+              Manual
             </span>
           )}
         </div>
       )}
 
-      {/* Admin Edit Indicator */}
+      {/* Admin Edit Button with enhanced styling */}
       {isAdmin && onClick && (
         <button
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center justify-center w-7 h-7 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200 transform group-hover:scale-110"
           aria-label="Edit progress override"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick();
+          }}
         >
-          ✏️
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
         </button>
       )}
     </div>
