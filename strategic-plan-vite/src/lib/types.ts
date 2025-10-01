@@ -50,6 +50,16 @@ export interface Goal {
   header_color?: string;
   children?: Goal[];
   metrics?: Metric[];
+
+  // Overall progress tracking
+  overall_progress?: number;
+  overall_progress_override?: number;
+  overall_progress_display_mode?: 'percentage' | 'qualitative' | 'score' | 'color-only' | 'hidden';
+  overall_progress_source?: 'calculated' | 'manual';
+  overall_progress_last_calculated?: string;
+  overall_progress_override_by?: string;
+  overall_progress_override_at?: string;
+  overall_progress_override_reason?: string;
 }
 
 export type MetricType = 'percent' | 'number' | 'rating' | 'currency' | 'status' | 'narrative' | 'link' | 'survey';
@@ -81,7 +91,7 @@ export interface Metric {
   baseline_value?: number;
   milestone_dates?: MilestoneDate[];
   trend_direction?: 'improving' | 'stable' | 'declining';
-  
+
   // Enhanced time-series fields
   frequency: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
   aggregation_method: 'average' | 'sum' | 'latest' | 'max' | 'min';
@@ -91,6 +101,10 @@ export interface Metric {
   ytd_value?: number;
   eoy_projection?: number;
   last_actual_period?: string;
+
+  // Metric calculation type (for overall progress)
+  metric_calculation_type?: 'numeric' | 'ratio' | 'qualitative' | 'percentage' | 'count' | 'rollup';
+  qualitative_mapping?: Record<string, number>;
   
   collection_frequency?: string;
   data_source_details?: string;
@@ -271,18 +285,135 @@ export function calculateGoalProgress(goal: Goal): number {
 
 export function getGoalStatus(goal: Goal): 'on-track' | 'at-risk' | 'critical' | 'completed' {
   const progress = calculateGoalProgress(goal);
-  
+
   if (goal.status_detail === 'completed' || progress >= 100) {
     return 'completed';
   }
-  
+
   if (progress >= 70) {
     return 'on-track';
   }
-  
+
   if (progress >= 40) {
     return 'at-risk';
   }
-  
+
   return 'critical';
+}
+
+// ============================================================================
+// OVERALL PROGRESS CALCULATION (For Strategic Objectives)
+// ============================================================================
+
+/**
+ * Calculates overall progress for a goal by aggregating metrics and child goals
+ * Handles:
+ * - Ratio metrics where lower is better (e.g., risk ratios)
+ * - "Rollup" type metrics (excluded from calculation)
+ * - Hierarchical aggregation (recursive for child goals)
+ * - Manual overrides (takes precedence)
+ */
+export function calculateOverallProgress(
+  goal: Goal,
+  allGoals: Goal[],
+  allMetrics: Metric[]
+): number | null {
+  // Manual override takes precedence
+  if (goal.overall_progress_override != null) {
+    return goal.overall_progress_override;
+  }
+
+  // Find metrics for this goal (exclude "rollup" type)
+  const goalMetrics = allMetrics.filter(m =>
+    m.goal_id === goal.id &&
+    m.metric_calculation_type !== 'rollup'
+  );
+
+  // Find children of this goal
+  const children = allGoals.filter(g => g.parent_id === goal.id);
+
+  let metricProgress: number | null = null;
+  let childProgress: number | null = null;
+
+  // Calculate metric average (with direction awareness)
+  if (goalMetrics.length > 0) {
+    const validMetrics = goalMetrics.filter(m =>
+      m.current_value != null &&
+      m.target_value != null &&
+      m.target_value !== 0
+    );
+
+    if (validMetrics.length > 0) {
+      const progressSum = validMetrics.reduce((sum, m) => {
+        let progress: number;
+
+        // Handle ratio metrics where LOWER is better (e.g., risk ratios)
+        if (m.is_higher_better === false && m.baseline_value != null) {
+          const improvement = m.baseline_value - m.current_value!;
+          const targetImprovement = m.baseline_value - m.target_value!;
+          progress = targetImprovement !== 0
+            ? Math.min((improvement / targetImprovement) * 100, 100)
+            : 0;
+        } else {
+          // Normal calculation (HIGHER is better)
+          progress = Math.min((m.current_value! / m.target_value!) * 100, 100);
+        }
+
+        return sum + Math.max(0, progress); // Ensure non-negative
+      }, 0);
+
+      metricProgress = progressSum / validMetrics.length;
+    }
+  }
+
+  // Calculate children average (RECURSIVE)
+  if (children.length > 0) {
+    const childProgressValues = children
+      .map(child => calculateOverallProgress(child, allGoals, allMetrics))
+      .filter(p => p != null) as number[];
+
+    if (childProgressValues.length > 0) {
+      childProgress = childProgressValues.reduce((sum, p) => sum + p, 0) / childProgressValues.length;
+    }
+  }
+
+  // Combine (simple average, no weighting per requirement)
+  if (metricProgress != null && childProgress != null) {
+    return (metricProgress + childProgress) / 2;
+  } else if (metricProgress != null) {
+    return metricProgress;
+  } else if (childProgress != null) {
+    return childProgress;
+  }
+
+  return null; // No data available
+}
+
+/**
+ * Converts numeric progress (0-100) to qualitative label
+ */
+export function getProgressQualitativeLabel(progress: number): string {
+  if (progress >= 91) return 'Excellent';
+  if (progress >= 71) return 'Great';
+  if (progress >= 41) return 'Good';
+  if (progress > 0) return 'Below';
+  return 'No Data';
+}
+
+/**
+ * Converts numeric progress (0-100) to score out of 5
+ */
+export function getProgressScoreOutOf5(progress: number): string {
+  return ((progress / 100) * 5).toFixed(2);
+}
+
+/**
+ * Gets color for progress bar based on progress level
+ */
+export function getProgressColor(progress: number): string {
+  if (progress >= 91) return '#10b981'; // green
+  if (progress >= 71) return '#84cc16'; // lime
+  if (progress >= 41) return '#f59e0b'; // amber
+  if (progress > 0) return '#ef4444';  // red
+  return '#6b7280'; // gray (no data)
 }
