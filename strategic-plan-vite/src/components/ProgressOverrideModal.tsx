@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Goal } from '../lib/types';
+import type { Goal } from '../lib/types';
 import {
   getProgressQualitativeLabel,
   getProgressScoreOutOf5,
