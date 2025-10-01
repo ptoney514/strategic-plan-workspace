@@ -10,6 +10,7 @@ import { ObjectiveWizard } from '../components/ObjectiveWizard';
 import { SlidePanel } from '../components/SlidePanel';
 import { OverallProgressBar } from '../components/OverallProgressBar';
 import { ProgressOverrideModal } from '../components/ProgressOverrideModal';
+import { GoalEditWizard } from '../components/GoalEditWizard';
 import { updateProgressOverride } from '../lib/services/progressService';
 import { ToastContainer, useToast, toast } from '../components/Toast';
 import type { Goal } from '../lib/types';
@@ -23,6 +24,7 @@ export function DistrictDashboard() {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [showSlidePanel, setShowSlidePanel] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [progressOverrideGoal, setProgressOverrideGoal] = useState<Goal | null>(null);
   const [isAdmin] = useState(true); // TODO: Replace with actual auth check
   const { messages, removeMessage } = useToast();
@@ -193,7 +195,10 @@ export function DistrictDashboard() {
                           )}
                           <GoalActions
                             goal={goal}
-                            onEdit={() => setEditingGoal(goal)}
+                            onEdit={() => {
+                              setEditingGoal(goal);
+                              setShowEditModal(true);
+                            }}
                             onAddChild={() => {
                               // Navigate to goal detail page to add child
                               window.location.href = `/${slug}/goals/${goal.id}`;
@@ -275,18 +280,16 @@ export function DistrictDashboard() {
       </main>
       
       <ObjectiveWizard
-        isOpen={showObjectiveWizard || !!editingGoal}
+        isOpen={showObjectiveWizard}
         onClose={() => {
           setShowObjectiveWizard(false);
-          setEditingGoal(null);
         }}
         districtId={district.id}
-        existingObjective={editingGoal}
+        existingObjective={null}
         onComplete={async (objectiveData) => {
-          console.log(editingGoal ? 'Updating objective:' : 'Creating objective:', objectiveData);
+          console.log('Creating objective:', objectiveData);
           // TODO: Implement API call to create/update objective and goals
           setShowObjectiveWizard(false);
-          setEditingGoal(null);
           refetchGoals();
         }}
       />
@@ -442,6 +445,7 @@ export function DistrictDashboard() {
                 onClick={() => {
                   setEditingGoal(selectedGoal);
                   setShowSlidePanel(false);
+                  setShowEditModal(true);
                 }}
                 className="flex-1 px-4 py-2 border border-input rounded-lg hover:bg-gray-50 transition"
               >
@@ -451,6 +455,19 @@ export function DistrictDashboard() {
           </div>
         )}
       </SlidePanel>
+
+      {/* Goal Edit Wizard */}
+      <GoalEditWizard
+        goal={editingGoal}
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingGoal(null);
+        }}
+        onSuccess={() => {
+          refetchGoals();
+        }}
+      />
 
       {/* Toast Notifications */}
       <ToastContainer messages={messages} onClose={removeMessage} />

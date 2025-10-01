@@ -1,15 +1,18 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useGoal, useChildGoals } from '../hooks/useGoals';
 import { useMetrics } from '../hooks/useMetrics';
-import { ChevronLeft, Target, TrendingUp, BarChart2 } from 'lucide-react';
+import { ChevronLeft, Target, TrendingUp, BarChart2, Edit2 } from 'lucide-react';
 import { MetricsChart } from '../components/MetricsChart';
+import { GoalEditWizard } from '../components/GoalEditWizard';
 import { calculateGoalProgress, getGoalStatus } from '../lib/types';
 
 export function GoalDetail() {
   const { slug, goalId } = useParams<{ slug: string; goalId: string }>();
-  const { data: goal, isLoading: goalLoading } = useGoal(goalId!);
+  const { data: goal, isLoading: goalLoading, refetch: refetchGoal } = useGoal(goalId!);
   const { data: metrics, isLoading: metricsLoading } = useMetrics(goalId!);
   const { data: childGoals, isLoading: childrenLoading } = useChildGoals(goalId!);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const isLoading = goalLoading || metricsLoading || childrenLoading;
 
@@ -47,18 +50,27 @@ export function GoalDetail() {
             Back to district dashboard
           </Link>
           
-          <div>
-            <span className="text-sm font-medium text-muted-foreground">
-              {goal.level === 0 ? 'Strategic Objective' : goal.level === 1 ? 'Goal' : 'Sub-goal'} {goal.goal_number}
-            </span>
-            <h1 className="text-3xl font-bold text-card-foreground mt-1">
-              {goal.title}
-            </h1>
-            {goal.description && (
-              <p className="text-muted-foreground mt-2">
-                {goal.description}
-              </p>
-            )}
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <span className="text-sm font-medium text-muted-foreground">
+                {goal.level === 0 ? 'Strategic Objective' : goal.level === 1 ? 'Goal' : 'Sub-goal'} {goal.goal_number}
+              </span>
+              <h1 className="text-3xl font-bold text-card-foreground mt-1">
+                {goal.title}
+              </h1>
+              {goal.description && (
+                <p className="text-muted-foreground mt-2">
+                  {goal.description}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="ml-4 flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition"
+            >
+              <Edit2 className="h-4 w-4" />
+              Edit Goal
+            </button>
           </div>
         </div>
       </header>
@@ -173,6 +185,16 @@ export function GoalDetail() {
           </div>
         </div>
       </main>
+
+      {/* Goal Edit Wizard */}
+      <GoalEditWizard
+        goal={goal}
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={() => {
+          refetchGoal();
+        }}
+      />
     </div>
   );
 }
