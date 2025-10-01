@@ -8,6 +8,9 @@ import { GoalActions } from '../components/GoalActions';
 import { StatusSummary } from '../components/StatusSummary';
 import { ObjectiveWizard } from '../components/ObjectiveWizard';
 import { SlidePanel } from '../components/SlidePanel';
+import { OverallProgressBar } from '../components/OverallProgressBar';
+import { ProgressOverrideModal } from '../components/ProgressOverrideModal';
+import { updateProgressOverride } from '../lib/services/progressService';
 import type { Goal } from '../lib/types';
 
 export function DistrictDashboard() {
@@ -19,6 +22,8 @@ export function DistrictDashboard() {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [showSlidePanel, setShowSlidePanel] = useState(false);
+  const [progressOverrideGoal, setProgressOverrideGoal] = useState<Goal | null>(null);
+  const [isAdmin] = useState(true); // TODO: Replace with actual auth check
 
   const isLoading = districtLoading || goalsLoading || metricsLoading;
 
@@ -199,21 +204,36 @@ export function DistrictDashboard() {
                         </p>
                       )}
 
-                      <div className="mb-4">
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"
-                          style={{
-                            backgroundColor: status === 'on-target' ? '#10b981' : 
-                                           status === 'monitoring' ? '#f59e0b' :
-                                           status === 'critical' ? '#ef4444' : '#6b7280',
-                            color: 'white'
-                          }}>
-                          <span className="w-2 h-2 rounded-full bg-white/30" />
-                          {status === 'on-target' ? 'On Target' :
-                           status === 'monitoring' ? 'Monitoring' :
-                           status === 'critical' ? 'Critical' :
-                           status === 'off-target' ? 'Off Target' : 'Not Started'}
+                      {/* Overall Progress Bar - Only for Level 0 (Objectives) */}
+                      {goal.level === 0 && (
+                        <div className="mb-4">
+                          <OverallProgressBar
+                            goal={goal}
+                            showLabel={true}
+                            isAdmin={isAdmin}
+                            onClick={isAdmin ? () => setProgressOverrideGoal(goal) : undefined}
+                          />
                         </div>
-                      </div>
+                      )}
+
+                      {/* Status Badge - For Level 1 & 2 (Goals & Sub-goals) */}
+                      {goal.level !== 0 && (
+                        <div className="mb-4">
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"
+                            style={{
+                              backgroundColor: status === 'on-target' ? '#10b981' :
+                                             status === 'monitoring' ? '#f59e0b' :
+                                             status === 'critical' ? '#ef4444' : '#6b7280',
+                              color: 'white'
+                            }}>
+                            <span className="w-2 h-2 rounded-full bg-white/30" />
+                            {status === 'on-target' ? 'On Target' :
+                             status === 'monitoring' ? 'Monitoring' :
+                             status === 'critical' ? 'Critical' :
+                             status === 'off-target' ? 'Off Target' : 'Not Started'}
+                          </div>
+                        </div>
+                      )}
 
                       <button 
                         onClick={() => {
@@ -266,6 +286,24 @@ export function DistrictDashboard() {
         }}
       />
       
+      {/* Progress Override Modal */}
+      {progressOverrideGoal && (
+        <ProgressOverrideModal
+          goal={progressOverrideGoal}
+          isOpen={!!progressOverrideGoal}
+          onClose={() => setProgressOverrideGoal(null)}
+          onSave={async (overrideValue, displayMode, reason) => {
+            await updateProgressOverride(progressOverrideGoal.id, {
+              overrideValue,
+              displayMode,
+              reason,
+              userId: undefined // TODO: Get from auth context
+            });
+            refetchGoals();
+          }}
+        />
+      )}
+
       {/* Slide Panel for Goal Details */}
       <SlidePanel
         isOpen={showSlidePanel}
