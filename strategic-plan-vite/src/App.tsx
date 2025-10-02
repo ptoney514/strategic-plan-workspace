@@ -12,6 +12,7 @@ import { SystemSettings } from './pages/admin/SystemSettings';
 
 // Client Public Pages
 import { HomePage } from './pages/client/public/HomePage';
+import { DistrictLandingPage } from './pages/client/public/DistrictLandingPage';
 import { DistrictDashboard } from './pages/client/public/DistrictDashboard';
 import { GoalDetail } from './pages/client/public/GoalDetail';
 import { MetricsDashboard } from './pages/client/public/MetricsDashboard';
@@ -36,8 +37,12 @@ function App() {
         </Route>
 
         {/* Client Public Routes - /:slug */}
+        {/* Landing page without layout (has its own header/footer) */}
+        <Route path="/:slug" element={<DistrictLandingPage />} />
+
+        {/* Dashboard pages with layout */}
         <Route path="/:slug" element={<ClientPublicLayout />}>
-          <Route index element={<DistrictDashboard />} />
+          <Route path="goals" element={<DistrictDashboard />} />
           <Route path="goals/:goalId" element={<GoalDetail />} />
           <Route path="metrics" element={<MetricsDashboard />} />
         </Route>

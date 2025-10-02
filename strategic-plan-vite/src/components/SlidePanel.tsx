@@ -52,8 +52,8 @@ export function SlidePanel({ isOpen, onClose, title, children }: SlidePanelProps
       {/* Panel */}
       <div
         ref={panelRef}
-        className={`fixed top-0 right-0 h-full bg-background shadow-2xl z-50 
-          w-full md:w-4/5 lg:w-4/5 max-w-6xl
+        className={`fixed top-0 right-0 h-full bg-background shadow-2xl z-50
+          w-full md:w-[40%]
           transform transition-transform duration-300 ease-out
           ${isOpen ? 'translate-x-0' : 'translate-x-full'}
         `}
