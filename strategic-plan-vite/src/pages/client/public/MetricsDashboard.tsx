@@ -28,11 +28,11 @@ import {
   useMetricsWithTimeSeries,
   useMetricsByCategory,
   usePerformanceTrends 
-} from '../hooks/useDashboard';
-import { DashboardStats } from '../components/DashboardStats';
-import { MetricsChart } from '../components/MetricsChart';
-import { GoalProgressChart } from '../components/GoalProgressChart';
-import { MetricOverview } from '../components/MetricOverview';
+} from '../../../hooks/useDashboard';
+import { DashboardStats } from '../../../components/DashboardStats';
+import { MetricsChart } from '../../../components/MetricsChart';
+import { GoalProgressChart } from '../../../components/GoalProgressChart';
+import { MetricOverview } from '../../../components/MetricOverview';
 import {
   exportMetricsToCSV,
   exportGoalsToCSV,
@@ -40,8 +40,8 @@ import {
   exportPerformanceReport,
   exportComprehensivePackage,
   exportMetricsWithTimeSeries
-} from '../lib/utils/export';
-import type { Metric, MetricCategory, MetricStatus } from '../lib/types';
+} from '../../../lib/utils/export';
+import type { Metric, MetricCategory, MetricStatus } from '../../../lib/types';
 
 type ViewMode = 'grid' | 'list' | 'category';
 type TimeRange = 'week' | 'month' | 'quarter' | 'year';

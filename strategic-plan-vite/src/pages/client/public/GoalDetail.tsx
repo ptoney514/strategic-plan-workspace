@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useGoal, useChildGoals } from '../hooks/useGoals';
-import { useMetrics } from '../hooks/useMetrics';
+import { useGoal, useChildGoals } from '../../../hooks/useGoals';
+import { useMetrics } from '../../../hooks/useMetrics';
 import { ChevronLeft, Target, TrendingUp, BarChart2, Edit2 } from 'lucide-react';
-import { MetricsChart } from '../components/MetricsChart';
-import { GoalEditWizard } from '../components/GoalEditWizard';
-import { calculateGoalProgress, getGoalStatus } from '../lib/types';
+import { MetricsChart } from '../../../components/MetricsChart';
+import { GoalEditWizard } from '../../../components/GoalEditWizard';
+import { calculateGoalProgress, getGoalStatus } from '../../../lib/types';
 
 export function GoalDetail() {
   const { slug, goalId } = useParams<{ slug: string; goalId: string }>();

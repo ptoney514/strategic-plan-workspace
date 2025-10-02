@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useDistricts } from '../hooks/useDistricts';
+import { useDistricts } from '../../../hooks/useDistricts';
 import { Building2, ChevronRight, Users, Target, TrendingUp } from 'lucide-react';
 
 export function HomePage() {

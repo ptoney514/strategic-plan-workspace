@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AdminLayout } from '../components/AdminLayout';
 import { 
   FileText, 
   User, 
@@ -15,7 +14,7 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import { useDistrict } from '../hooks/useDistricts';
+import { useDistrict } from '../../../hooks/useDistricts';
 
 interface AuditEntry {
   id: string;
@@ -155,7 +154,7 @@ export function AdminAudit() {
   const uniqueEntities = Array.from(new Set(auditEntries.map(e => e.entity)));
   
   return (
-    <AdminLayout>
+    
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -364,6 +363,6 @@ export function AdminAudit() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    
   );
 }

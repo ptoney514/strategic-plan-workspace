@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AdminLayout } from '../components/AdminLayout';
-import { StatusManager } from '../components/StatusManager';
+import { StatusManager } from '../../../components/StatusManager';
 import { 
   Target, 
   AlertCircle, 
@@ -14,10 +13,10 @@ import {
   Save,
   X
 } from 'lucide-react';
-import { useDistrict } from '../hooks/useDistricts';
-import { useGoals } from '../hooks/useGoals';
-import { useMetrics } from '../hooks/useMetrics';
-import type { Goal, HierarchicalGoal } from '../lib/types';
+import { useDistrict } from '../../../hooks/useDistricts';
+import { useGoals } from '../../../hooks/useGoals';
+import { useMetrics } from '../../../hooks/useMetrics';
+import type { Goal, HierarchicalGoal } from '../../../lib/types';
 
 export function AdminGoals() {
   const { slug } = useParams();
@@ -178,17 +177,14 @@ export function AdminGoals() {
   
   if (loading) {
     return (
-      <AdminLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-muted-foreground">Loading goals...</div>
-        </div>
-      </AdminLayout>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-muted-foreground">Loading goals...</div>
+      </div>
     );
   }
-  
+
   return (
-    <AdminLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -238,7 +234,6 @@ export function AdminGoals() {
             }}
           />
         )}
-      </div>
-    </AdminLayout>
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AdminLayout } from '../components/AdminLayout';
-import { BulkDataEntry } from '../components/BulkDataEntry';
+import { BulkDataEntry } from '../../../components/BulkDataEntry';
 import { 
   Upload, 
   Download, 
@@ -11,9 +10,9 @@ import {
   Calendar,
   Filter
 } from 'lucide-react';
-import { useDistrict } from '../hooks/useDistricts';
-import { useGoals } from '../hooks/useGoals';
-import { useMetrics } from '../hooks/useMetrics';
+import { useDistrict } from '../../../hooks/useDistricts';
+import { useGoals } from '../../../hooks/useGoals';
+import { useMetrics } from '../../../hooks/useMetrics';
 
 export function AdminMetrics() {
   const { slug } = useParams();
@@ -45,16 +44,16 @@ export function AdminMetrics() {
   
   if (loading) {
     return (
-      <AdminLayout>
+      
         <div className="flex items-center justify-center h-64">
           <div className="text-muted-foreground">Loading metrics...</div>
         </div>
-      </AdminLayout>
+      
     );
   }
   
   return (
-    <AdminLayout>
+    
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -234,6 +233,6 @@ export function AdminMetrics() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    
   );
 }

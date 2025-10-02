@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { AdminLayout } from '../components/AdminLayout';
 import {
   Target,
   TrendingUp,
@@ -12,11 +11,11 @@ import {
   Upload,
   RefreshCw
 } from 'lucide-react';
-import { useDistrict } from '../hooks/useDistricts';
-import { useGoals } from '../hooks/useGoals';
-import { useMetrics } from '../hooks/useMetrics';
-import { recalculateDistrictProgress } from '../lib/services/progressService';
-import { ToastContainer, useToast, toast } from '../components/Toast';
+import { useDistrict } from '../../../hooks/useDistricts';
+import { useGoals } from '../../../hooks/useGoals';
+import { useMetrics } from '../../../hooks/useMetrics';
+import { recalculateDistrictProgress } from '../../../lib/services/progressService';
+import { ToastContainer, useToast, toast } from '../../../components/Toast';
 
 export function AdminDashboard() {
   const { slug } = useParams();
@@ -120,8 +119,7 @@ export function AdminDashboard() {
   ];
   
   return (
-    <AdminLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground">
@@ -315,10 +313,9 @@ export function AdminDashboard() {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Toast Notifications */}
-      <ToastContainer messages={messages} onClose={removeMessage} />
-    </AdminLayout>
+        {/* Toast Notifications */}
+        <ToastContainer messages={messages} onClose={removeMessage} />
+      </div>
   );
 }

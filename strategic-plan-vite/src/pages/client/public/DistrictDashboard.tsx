@@ -1,19 +1,19 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useDistrict } from '../hooks/useDistricts';
-import { useGoals } from '../hooks/useGoals';
-import { useMetrics } from '../hooks/useMetrics';
+import { useDistrict } from '../../../hooks/useDistricts';
+import { useGoals } from '../../../hooks/useGoals';
+import { useMetrics } from '../../../hooks/useMetrics';
 import { ChevronLeft, Target, Users, ChevronRight, Plus, BarChart2 } from 'lucide-react';
-import { GoalActions } from '../components/GoalActions';
-import { StatusSummary } from '../components/StatusSummary';
-import { ObjectiveWizard } from '../components/ObjectiveWizard';
-import { SlidePanel } from '../components/SlidePanel';
-import { OverallProgressBar } from '../components/OverallProgressBar';
-import { ProgressOverrideModal } from '../components/ProgressOverrideModal';
-import { GoalEditWizard } from '../components/GoalEditWizard';
-import { updateProgressOverride } from '../lib/services/progressService';
-import { ToastContainer, useToast, toast } from '../components/Toast';
-import type { Goal } from '../lib/types';
+import { GoalActions } from '../../../components/GoalActions';
+import { StatusSummary } from '../../../components/StatusSummary';
+import { ObjectiveWizard } from '../../../components/ObjectiveWizard';
+import { SlidePanel } from '../../../components/SlidePanel';
+import { OverallProgressBar } from '../../../components/OverallProgressBar';
+import { ProgressOverrideModal } from '../../../components/ProgressOverrideModal';
+import { GoalEditWizard } from '../../../components/GoalEditWizard';
+import { updateProgressOverride } from '../../../lib/services/progressService';
+import { ToastContainer, useToast, toast } from '../../../components/Toast';
+import type { Goal } from '../../../lib/types';
 
 export function DistrictDashboard() {
   const { slug } = useParams<{ slug: string }>();
