@@ -15,6 +15,9 @@ import {
   Megaphone
 } from 'lucide-react';
 import { SlidePanel } from '../../../components/SlidePanel';
+import { PerformanceIndicator } from '../../../components/PerformanceIndicator';
+import { AnnualProgressChart } from '../../../components/AnnualProgressChart';
+import { GoalNarrativeDetail } from '../../../components/GoalNarrativeDetail';
 import type { Goal } from '../../../lib/types';
 import { getProgressColor } from '../../../lib/types';
 
@@ -25,6 +28,8 @@ export function DistrictDashboard() {
   const { isLoading: metricsLoading } = useMetrics(district?.id || '');
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [showSlidePanel, setShowSlidePanel] = useState(false);
+  const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
+  const [expandedSubGoalId, setExpandedSubGoalId] = useState<string | null>(null);
 
   const isLoading = districtLoading || goalsLoading || metricsLoading;
 
@@ -339,35 +344,181 @@ export function DistrictDashboard() {
 
               {/* Goals List */}
               {selectedGoal.children && selectedGoal.children.length > 0 ? (
-                <div className="space-y-3">
-                  {selectedGoal.children.map((child: any) => (
-                    <div key={child.id} className="bg-white border border-neutral-200 rounded-lg p-4 hover:border-neutral-400 transition-colors">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center">
-                          <span className="text-sm font-semibold text-neutral-900">
-                            {child.goal_number}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-neutral-900 mb-1">{child.title}</h4>
-                          {child.description && (
-                            <p className="text-sm text-neutral-600 mb-2">{child.description}</p>
-                          )}
-                          {child.metrics_count !== undefined && (
-                            <div className="text-xs text-neutral-500">
-                              {child.metrics_count === 0 ? 'No metrics defined' : `${child.metrics_count} metric${child.metrics_count !== 1 ? 's' : ''}`}
+                <div className="space-y-4">
+                  {selectedGoal.children.map((child: any, index: number) => {
+                    const childProgress = child.overall_progress_override ?? child.overall_progress ?? 0;
+                    const isExpanded = expandedGoalId === child.id;
+
+                    // Mock data for demonstration - will be replaced with real data from backend
+                    const mockChartData = index === 0 ? [
+                      { year: '2021', value: 3.96, target: 4.0 },
+                      { year: '2022', value: 2.76, target: 4.0 },
+                      { year: '2023', value: 3.92, target: 4.0 },
+                      { year: '2024', value: 2.28, target: 4.0 }
+                    ] : null;
+
+                    const mockNarrative = index === 1 ? {
+                      summary: "The Department of Education ranks schools based on State testing of Needs Improvement, Good, Great, and Excellent. The district has received a marking of Great the last three years. This past year, the district missed excellent, by .06 overall.",
+                      highlights: [
+                        "District received 'Great' classification for the third consecutive year",
+                        "Composite scores developed from Math, ELA, and Science proficiency",
+                        "Student assessments in grades 3-8 and 11th grade",
+                        "Missed 'Excellent' rating by only 0.06 points"
+                      ],
+                      links: [
+                        {
+                          label: "Compare district scores to state average",
+                          url: "#"
+                        }
+                      ],
+                      dataSource: "Nebraska Department of Education District Classification"
+                    } : null;
+
+                    return (
+                      <div key={child.id} className="bg-white border border-neutral-200 rounded-lg overflow-hidden transition-all">
+                        <div className="p-5">
+                          <div className="flex items-start gap-3 mb-4">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center">
+                              <span className="text-sm font-semibold text-neutral-900">
+                                {child.goal_number}
+                              </span>
                             </div>
-                          )}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-neutral-900 mb-1">{child.title}</h4>
+                              {child.description && !isExpanded && (
+                                <p className="text-sm text-neutral-600 mb-2">{child.description}</p>
+                              )}
+                            </div>
+                            <div className="flex-shrink-0">
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                On Track
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Performance Indicator */}
+                          <PerformanceIndicator
+                            progress={childProgress}
+                            displayMode={child.overall_progress_display_mode || 'qualitative'}
+                            showLabels={true}
+                            onClick={() => {
+                              setExpandedGoalId(isExpanded ? null : child.id);
+                            }}
+                          />
                         </div>
-                        <div className="flex-shrink-0">
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            On Track
-                          </span>
-                        </div>
+
+                        {/* Expanded Detail Section */}
+                        {isExpanded && (
+                          <div className="border-t border-neutral-200 p-5 bg-neutral-50 animate-in slide-in-from-top duration-300">
+                            <div className="space-y-4">
+                              {/* Primary metrics/charts for this goal */}
+                              {mockChartData ? (
+                                <AnnualProgressChart
+                                  data={mockChartData}
+                                  title="Annual Progress"
+                                  description="Survey data showing year-over-year trends. The annual tracking increases each year shown are committed to..."
+                                  unit=""
+                                />
+                              ) : mockNarrative ? (
+                                <GoalNarrativeDetail
+                                  title="Academic Performance Details"
+                                  summary={mockNarrative.summary}
+                                  highlights={mockNarrative.highlights}
+                                  links={mockNarrative.links}
+                                  dataSource={mockNarrative.dataSource}
+                                />
+                              ) : null}
+
+                              {/* Level 2 Sub-goals (e.g., 1.1.1, 1.1.2) */}
+                              {child.children && child.children.length > 0 && (
+                                <div className="space-y-3 pt-4">
+                                  <h5 className="text-sm font-semibold text-neutral-700">Sub-Goals</h5>
+                                  {child.children.map((subGoal: any, subIndex: number) => {
+                                    const isSubExpanded = expandedSubGoalId === subGoal.id;
+                                    const subGoalProgress = subGoal.overall_progress_override ?? subGoal.overall_progress ?? 0;
+
+                                    // Mock data for Level 2 sub-goals
+                                    const mockSubGoalChart = subIndex === 0 ? [
+                                      { year: '2021', value: 40, target: 50 },
+                                      { year: '2022', value: 48, target: 50 },
+                                      { year: '2023', value: 49, target: 50 },
+                                      { year: '2024', value: 52, target: 50 }
+                                    ] : subIndex === 1 ? [
+                                      { year: '2021', value: 65, target: 70 },
+                                      { year: '2022', value: 68, target: 70 },
+                                      { year: '2023', value: 71, target: 70 },
+                                      { year: '2024', value: 73, target: 70 }
+                                    ] : null;
+
+                                    const subGoalTitle = subIndex === 0
+                                      ? "Enrollment Data - Secondary Data Source"
+                                      : subIndex === 1
+                                      ? "Student Retention Rates"
+                                      : "Progress Tracking";
+
+                                    const subGoalDescription = subIndex === 0
+                                      ? "Proportional enrollment of non-white students tracked year over year."
+                                      : subIndex === 1
+                                      ? "Year-over-year student retention and completion rates."
+                                      : "Additional metrics and progress indicators.";
+
+                                    return (
+                                      <div key={subGoal.id} className="bg-white border border-neutral-300 rounded-lg overflow-hidden">
+                                        <div className="p-4">
+                                          <div className="flex items-start gap-2 mb-3">
+                                            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-neutral-200 flex items-center justify-center">
+                                              <span className="text-xs font-semibold text-neutral-900">
+                                                {subGoal.goal_number}
+                                              </span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <h5 className="text-sm font-medium text-neutral-900">{subGoal.title}</h5>
+                                              {subGoal.description && !isSubExpanded && (
+                                                <p className="text-xs text-neutral-600 mt-1">{subGoal.description}</p>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          {/* Performance Indicator for Sub-goal */}
+                                          <PerformanceIndicator
+                                            progress={subGoalProgress}
+                                            displayMode="percentage"
+                                            showLabels={false}
+                                            onClick={() => {
+                                              setExpandedSubGoalId(isSubExpanded ? null : subGoal.id);
+                                            }}
+                                          />
+                                        </div>
+
+                                        {/* Expanded Sub-goal Detail */}
+                                        {isSubExpanded && mockSubGoalChart && (
+                                          <div className="border-t border-neutral-300 p-4 bg-neutral-100">
+                                            <AnnualProgressChart
+                                              data={mockSubGoalChart}
+                                              title={subGoalTitle}
+                                              description={subGoalDescription}
+                                              unit="%"
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {!mockChartData && !mockNarrative && (!child.children || child.children.length === 0) && (
+                                <div className="text-center py-8 text-neutral-500">
+                                  <p className="text-sm">Detailed metrics coming soon</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-12 text-neutral-500">
