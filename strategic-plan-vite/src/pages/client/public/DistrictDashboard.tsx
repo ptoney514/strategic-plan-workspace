@@ -3,16 +3,26 @@ import { useParams, Link } from 'react-router-dom';
 import { useDistrict } from '../../../hooks/useDistricts';
 import { useGoals } from '../../../hooks/useGoals';
 import { useMetrics } from '../../../hooks/useMetrics';
-import { ChevronLeft, Target, Users, ChevronRight } from 'lucide-react';
+import {
+  GraduationCap,
+  Target,
+  BarChart3,
+  ArrowRight,
+  BookOpen,
+  Star,
+  Users,
+  HandCoins,
+  Megaphone
+} from 'lucide-react';
 import { SlidePanel } from '../../../components/SlidePanel';
-import { OverallProgressBar } from '../../../components/OverallProgressBar';
 import type { Goal } from '../../../lib/types';
+import { getProgressColor } from '../../../lib/types';
 
 export function DistrictDashboard() {
   const { slug } = useParams<{ slug: string }>();
   const { data: district, isLoading: districtLoading } = useDistrict(slug!);
   const { data: goals, isLoading: goalsLoading } = useGoals(district?.id || '');
-  const { data: metrics, isLoading: metricsLoading } = useMetrics(district?.id || '');
+  const { isLoading: metricsLoading } = useMetrics(district?.id || '');
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [showSlidePanel, setShowSlidePanel] = useState(false);
 
@@ -20,10 +30,10 @@ export function DistrictDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading district data...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neutral-900 mx-auto"></div>
+          <p className="mt-4 text-neutral-600">Loading district data...</p>
         </div>
       </div>
     );
@@ -31,11 +41,10 @@ export function DistrictDashboard() {
 
   if (!district) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-xl text-muted-foreground">District not found</p>
-          <Link to="/" className="mt-4 inline-flex items-center text-primary hover:underline">
-            <ChevronLeft className="h-4 w-4 mr-1" />
+          <p className="text-xl text-neutral-600">District not found</p>
+          <Link to="/" className="mt-4 inline-flex items-center text-neutral-900 hover:underline">
             Back to districts
           </Link>
         </div>
@@ -43,123 +52,244 @@ export function DistrictDashboard() {
     );
   }
 
-  const statusColors = {
-    'on-track': 'bg-green-100 text-green-800 border-green-200',
-    'at-risk': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    'critical': 'bg-red-100 text-red-800 border-red-200',
-    'completed': 'bg-blue-100 text-blue-800 border-blue-200'
-  };
+  // Get top-level objectives (level 0)
+  const objectives = goals?.filter(g => g.level === 0) || [];
+
+  // Icon gradients for cards
+  const cardStyles = [
+    { from: 'from-emerald-500', to: 'to-emerald-600', bg: 'bg-emerald-50', text: 'text-emerald-700', ring: 'ring-emerald-200' },
+    { from: 'from-sky-500', to: 'to-indigo-600', bg: 'bg-neutral-50', text: 'text-neutral-700', ring: 'ring-neutral-200' },
+    { from: 'from-fuchsia-500', to: 'to-rose-600', bg: 'bg-neutral-50', text: 'text-neutral-700', ring: 'ring-neutral-200' },
+    { from: 'from-amber-500', to: 'to-orange-600', bg: 'bg-neutral-50', text: 'text-neutral-700', ring: 'ring-neutral-200' },
+    { from: 'from-violet-500', to: 'to-purple-600', bg: 'bg-neutral-50', text: 'text-neutral-700', ring: 'ring-neutral-200' },
+    { from: 'from-cyan-500', to: 'to-blue-600', bg: 'bg-neutral-50', text: 'text-neutral-700', ring: 'ring-neutral-200' },
+  ];
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-8">
+    <div className="min-h-full antialiased text-neutral-800 bg-neutral-50">
 
-        {!goals || goals.length === 0 ? (
+      {/* Hero */}
+      <section className="relative overflow-hidden bg-white py-12 md:py-16">
+        <div className="max-w-4xl mx-auto px-6 md:px-8 text-center">
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-neutral-900">
+            {district.name}
+            <br />
+            <span className="text-red-600">Strategic Plan 2021-2026</span>
+          </h1>
+          <p className="mt-6 text-base md:text-lg text-neutral-600 max-w-3xl mx-auto">
+            Community. Innovation. Excellence. - Charting our course for educational excellence through strategic pillars that guide our commitment to student success
+          </p>
+        </div>
+      </section>
+
+      {/* Objectives Grid */}
+      <section className="max-w-7xl mx-auto px-6 md:px-8 pb-12 md:pb-16">
+        {!objectives || objectives.length === 0 ? (
           <div className="text-center py-12">
-            <Target className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <p className="text-xl text-muted-foreground">No strategic goals available</p>
-            <p className="text-sm text-muted-foreground mt-2">
+            <Target className="h-16 w-16 text-neutral-400 mx-auto mb-4" />
+            <p className="text-xl text-neutral-600">No strategic goals available</p>
+            <p className="text-sm text-neutral-500 mt-2">
               Strategic objectives are being developed
             </p>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {objectives.map((goal, index) => {
+              const style = cardStyles[index % cardStyles.length];
+              const subGoalsCount = goal.children?.length || 0;
+              const progress = goal.overall_progress_override ?? goal.overall_progress ?? 0;
+              const progressColor = getProgressColor(progress);
 
-            {/* Goals Grid */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-semibold text-foreground">
-                  Strategic Objectives
-                </h2>
-              </div>
-              
-              {/* Goals grid without drag and drop */}
-              {true ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {goals.map((goal) => {
-                  const status = goal.status || 'not-started';
-                  
-                  return (
-                    <div
-                      key={goal.id}
-                      onClick={() => {
-                        setSelectedGoal(goal);
-                        setShowSlidePanel(true);
-                      }}
-                      className="bg-card rounded-lg border border-border p-6 hover:shadow-lg transition-all hover:border-primary/50 cursor-pointer"
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <span className="text-sm font-medium text-muted-foreground">
-                            Objective {goal.goal_number}
-                          </span>
-                          <h3 className="text-lg font-semibold text-card-foreground mt-1">
-                            {goal.title}
-                          </h3>
-                        </div>
+              return (
+                <article
+                  key={goal.id}
+                  onClick={() => {
+                    setSelectedGoal(goal);
+                    setShowSlidePanel(true);
+                  }}
+                  className="group relative rounded-2xl bg-white ring-1 ring-neutral-200 hover:ring-neutral-300 transition-all shadow-sm hover:shadow-md cursor-pointer"
+                >
+                  <div className="pointer-events-none absolute -top-6 -right-6 h-28 w-28 rounded-full bg-gradient-to-br from-emerald-400/30 via-sky-400/30 to-indigo-500/30 blur-2xl"></div>
+                  <div className="p-5 md:p-6">
+                    <div className="flex items-start justify-between">
+                      <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${style.from} ${style.to} text-white flex items-center justify-center shadow-sm`}>
+                        {index === 0 ? <GraduationCap className="h-5 w-5" /> :
+                         index === 1 ? <BarChart3 className="h-5 w-5" /> :
+                         <BookOpen className="h-5 w-5" />}
                       </div>
-
-                      {goal.description && (
-                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                          {goal.description}
-                        </p>
-                      )}
-
-                      {/* Overall Progress Bar - Only for Level 0 (Objectives) */}
-                      {goal.level === 0 && (
-                        <div className="mb-4">
-                          <OverallProgressBar
-                            goal={goal}
-                            showLabel={true}
-                            isAdmin={false}
-                            onClick={undefined}
-                          />
-                        </div>
-                      )}
-
-                      {/* Status Badge - For Level 1 & 2 (Goals & Sub-goals) */}
-                      {goal.level !== 0 && (
-                        <div className="mb-4">
-                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"
-                            style={{
-                              backgroundColor: status === 'on-target' ? '#10b981' :
-                                             status === 'monitoring' ? '#f59e0b' :
-                                             status === 'critical' ? '#ef4444' : '#6b7280',
-                              color: 'white'
-                            }}>
-                            <span className="w-2 h-2 rounded-full bg-white/30" />
-                            {status === 'on-target' ? 'On Target' :
-                             status === 'monitoring' ? 'Monitoring' :
-                             status === 'critical' ? 'Critical' :
-                             status === 'off-target' ? 'Off Target' : 'Not Started'}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="w-full flex items-center justify-between text-sm">
-                        <div className="flex items-center text-muted-foreground">
-                          <Target className="h-4 w-4 mr-1" />
-                          <span>{goal.children?.length || 0} sub-goals</span>
-                        </div>
-                      </div>
-
-                      {goal.owner_name && (
-                        <div className="mt-3 pt-3 border-t border-border">
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Users className="h-4 w-4 mr-1" />
-                            <span>{goal.owner_name}</span>
-                          </div>
-                        </div>
-                      )}
+                      <span className={`inline-flex items-center gap-1.5 rounded-full ${index === 0 ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200'} text-xs font-medium px-2.5 py-1`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${index === 0 ? 'bg-emerald-500' : 'bg-neutral-400'}`}></span>
+                        In Progress
+                      </span>
                     </div>
-                  );
-                  })}
-                </div>
-              ) : (
-                <div>Loading...</div>
-              )}
-            </div>
+                    <h3 className="mt-4 text-xl md:text-2xl font-semibold tracking-tight text-neutral-900">
+                      {goal.title}
+                    </h3>
+                    <p className="mt-3 text-neutral-600 text-sm md:text-base line-clamp-3">
+                      {goal.description || 'Strategic initiatives focused on this objective'}
+                    </p>
+                    <div className="mt-5 flex items-center gap-4 text-sm text-neutral-600">
+                      <div className="inline-flex items-center gap-1.5">
+                        <Target className="h-4 w-4 text-neutral-400" />
+                        <span className="font-medium text-neutral-800">{subGoalsCount}</span>
+                        <span>Goals</span>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="mt-5">
+                      <div className="relative">
+                        <div className="w-full bg-secondary rounded-full h-3 overflow-hidden shadow-inner">
+                          <div
+                            className="h-full transition-all duration-700 ease-out relative"
+                            style={{
+                              width: `${Math.min(Math.max(progress, 0), 100)}%`,
+                              background: `linear-gradient(90deg, ${progressColor}, ${progressColor}dd)`,
+                              boxShadow: `0 0 8px ${progressColor}40`
+                            }}
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-20" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-right">
+                        <span
+                          className="text-sm font-bold"
+                          style={{
+                            color: progressColor,
+                            textShadow: `0 1px 2px ${progressColor}20`
+                          }}
+                        >
+                          {Math.round(progress)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-5 md:px-6 pb-5 md:pb-6">
+                    <button className="inline-flex items-center gap-2 text-sm font-medium text-neutral-800 hover:text-neutral-900">
+                      View details
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
+      </section>
+
+      {/* Success Story */}
+      <section className="max-w-7xl mx-auto px-6 md:px-8 pb-12 md:pb-20">
+        <div className="relative overflow-hidden rounded-3xl ring-1 ring-neutral-200 bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-white shadow-[0_10px_35px_-10px_rgba(79,70,229,0.35)]">
+          <div className="absolute inset-0">
+            <img
+              src="https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=1600&auto=format&fit=crop"
+              alt=""
+              className="absolute right-0 top-0 h-full w-[60%] object-cover opacity-10 hidden sm:block"
+            />
+          </div>
+          <div className="relative p-6 md:p-10">
+            <div className="flex items-center gap-2">
+              <Star className="h-4 w-4 text-amber-300" />
+              <span className="text-sm font-medium">Success Story</span>
+            </div>
+            <h3 className="mt-3 text-2xl md:text-4xl font-semibold tracking-tight">
+              Emma's Reading Journey
+            </h3>
+            <p className="mt-4 max-w-3xl text-white/90 text-base md:text-lg">
+              "Six months ago, Emma struggled with reading. Thanks to our new reading specialists and personalized support, she's now reading above grade level and loves picking out books at the library!"
+            </p>
+            <div className="mt-6 flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-white/20 backdrop-blur ring-1 ring-white/30 flex items-center justify-center font-medium">SJ</div>
+              <div>
+                <div className="text-sm font-medium">Sarah Johnson</div>
+                <div className="text-sm text-white/80">Emma's Mom, Grade 2</div>
+              </div>
+            </div>
+            <BookOpen className="absolute right-6 bottom-6 md:right-8 md:bottom-8 h-16 w-16 md:h-24 md:w-24 text-white/25" />
+          </div>
+        </div>
+      </section>
+
+      {/* How You Can Help */}
+      <section className="max-w-7xl mx-auto px-6 md:px-8 pb-16 md:pb-24">
+        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-neutral-900">How You Can Help</h2>
+        <p className="mt-2 text-neutral-600">Join families, educators, and partners to strengthen each objective.</p>
+
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Help card 1 */}
+          <div className="rounded-2xl bg-white ring-1 ring-neutral-200 hover:ring-neutral-300 transition-shadow shadow-sm hover:shadow-md overflow-hidden">
+            <div className="aspect-[16/9] overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1517520287167-4bbf64a00d66?q=80&w=1600&auto=format&fit=crop"
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <div className="p-5">
+              <div className="inline-flex items-center gap-2 text-sm font-medium text-neutral-700">
+                <Users className="h-4 w-4 text-emerald-600" />
+                Volunteer &amp; Mentor
+              </div>
+              <p className="mt-2 text-sm text-neutral-600">
+                Support tutoring, after‑school clubs, and wellness programs.
+              </p>
+              <button className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-neutral-800">
+                Get involved
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Help card 2 */}
+          <div className="rounded-2xl bg-white ring-1 ring-neutral-200 hover:ring-neutral-300 transition-shadow shadow-sm hover:shadow-md overflow-hidden">
+            <div className="aspect-[16/9] overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=1600&auto=format&fit=crop"
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <div className="p-5">
+              <div className="inline-flex items-center gap-2 text-sm font-medium text-neutral-700">
+                <HandCoins className="h-4 w-4 text-indigo-600" />
+                Fund Classroom Needs
+              </div>
+              <p className="mt-2 text-sm text-neutral-600">
+                Provide books, technology, and program resources.
+              </p>
+              <button className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-neutral-800">
+                See priorities
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Help card 3 */}
+          <div className="rounded-2xl bg-white ring-1 ring-neutral-200 hover:ring-neutral-300 transition-shadow shadow-sm hover:shadow-md overflow-hidden">
+            <div className="aspect-[16/9] overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=1600&auto=format&fit=crop"
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <div className="p-5">
+              <div className="inline-flex items-center gap-2 text-sm font-medium text-neutral-700">
+                <Megaphone className="h-4 w-4 text-rose-600" />
+                Share Your Story
+              </div>
+              <p className="mt-2 text-sm text-neutral-600">
+                Celebrate wins like Emma's—and inspire others to join.
+              </p>
+              <button className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-neutral-800">
+                Submit a story
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Slide Panel for Goal Details */}
       <SlidePanel
@@ -173,22 +303,22 @@ export function DistrictDashboard() {
         {selectedGoal && (
           <div className="h-full flex flex-col">
             {/* Header Section - Fixed */}
-            <div className="p-6 border-b border-border space-y-4">
+            <div className="p-6 border-b border-neutral-200 space-y-4">
               <div>
-                <h2 className="text-2xl font-bold text-foreground">{selectedGoal.title}</h2>
+                <h2 className="text-2xl font-bold text-neutral-900">{selectedGoal.title}</h2>
                 {selectedGoal.description && (
-                  <p className="text-muted-foreground mt-2">{selectedGoal.description}</p>
+                  <p className="text-neutral-600 mt-2">{selectedGoal.description}</p>
                 )}
               </div>
 
               {/* Status Summary Grid */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-sm text-muted-foreground mb-1">Overall Status</div>
+                  <div className="text-sm text-neutral-500 mb-1">Overall Status</div>
                   <div className="text-lg font-semibold">On Track</div>
                 </div>
                 <div>
-                  <div className="text-sm text-muted-foreground mb-1">Sub-goals</div>
+                  <div className="text-sm text-neutral-500 mb-1">Sub-goals</div>
                   <div className="text-lg font-semibold">{selectedGoal.children?.length || 0}</div>
                 </div>
               </div>
@@ -202,7 +332,7 @@ export function DistrictDashboard() {
                   <Target className="h-5 w-5" />
                   Goals
                 </h3>
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="text-sm text-neutral-600 mb-4">
                   Track progress across all goals and measures within this strategic objective.
                 </p>
               </div>
@@ -210,39 +340,29 @@ export function DistrictDashboard() {
               {/* Goals List */}
               {selectedGoal.children && selectedGoal.children.length > 0 ? (
                 <div className="space-y-3">
-                  {selectedGoal.children.map((child: any, index: number) => (
-                    <div key={child.id} className="bg-card border border-border rounded-lg p-4 hover:border-primary/50 transition-colors">
+                  {selectedGoal.children.map((child: any) => (
+                    <div key={child.id} className="bg-white border border-neutral-200 rounded-lg p-4 hover:border-neutral-400 transition-colors">
                       <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-sm font-semibold text-primary">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center">
+                          <span className="text-sm font-semibold text-neutral-900">
                             {child.goal_number}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-foreground mb-1">{child.title}</h4>
+                          <h4 className="font-medium text-neutral-900 mb-1">{child.title}</h4>
                           {child.description && (
-                            <p className="text-sm text-muted-foreground mb-2">{child.description}</p>
+                            <p className="text-sm text-neutral-600 mb-2">{child.description}</p>
                           )}
                           {child.metrics_count !== undefined && (
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-xs text-neutral-500">
                               {child.metrics_count === 0 ? 'No metrics defined' : `${child.metrics_count} metric${child.metrics_count !== 1 ? 's' : ''}`}
                             </div>
                           )}
                         </div>
                         <div className="flex-shrink-0">
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-                            style={{
-                              backgroundColor: child.status === 'on-target' ? '#10b981' :
-                                             child.status === 'monitoring' ? '#f59e0b' :
-                                             child.status === 'critical' ? '#ef4444' :
-                                             child.status === 'off-target' ? '#fb923c' : '#6b7280',
-                              color: 'white'
-                            }}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
-                            {child.status === 'on-target' ? 'On Track' :
-                             child.status === 'monitoring' ? 'Monitoring' :
-                             child.status === 'critical' ? 'Critical' :
-                             child.status === 'off-target' ? 'Off Track' : 'Not Started'}
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            On Track
                           </span>
                         </div>
                       </div>
@@ -250,8 +370,8 @@ export function DistrictDashboard() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Target className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <div className="text-center py-12 text-neutral-500">
+                  <Target className="h-12 w-12 mx-auto mb-3 text-neutral-300" />
                   <p className="font-medium">No goals defined yet</p>
                   <p className="text-sm mt-1">Goals will appear here once they are added to this objective.</p>
                 </div>
