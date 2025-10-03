@@ -22,9 +22,9 @@ import type { Goal, HierarchicalGoal } from '../../../lib/types';
 export function AdminGoals() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { district } = useDistrict(slug!);
-  const { goals, loading } = useGoals(district?.id);
-  const { metrics } = useMetrics(district?.id);
+  const { data: district } = useDistrict(slug!);
+  const { data: goals, isLoading: loading } = useGoals(district?.id!);
+  const { data: metrics } = useMetrics(district?.id!);
   const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
   const [editingGoal, setEditingGoal] = useState<string | null>(null);
   const [overrideModal, setOverrideModal] = useState<Goal | null>(null);
@@ -73,7 +73,8 @@ export function AdminGoals() {
     const hasChildren = goal.children && goal.children.length > 0;
     const isExpanded = expandedGoals.has(goal.id);
     const goalMetrics = metrics?.filter(m => m.goal_id === goal.id) || [];
-    
+    const isObjective = level === 0;
+
     // Calculate metrics summary
     const metricsWithValues = goalMetrics.filter(m => m.current_value && m.target_value);
     const avgProgress = metricsWithValues.length > 0
@@ -82,10 +83,12 @@ export function AdminGoals() {
           return sum + progress;
         }, 0) / metricsWithValues.length
       : null;
-    
+
     return (
       <React.Fragment key={goal.id}>
-        <tr className={`border-b hover:bg-muted/50 ${level > 0 ? 'bg-muted/20' : ''}`}>
+        <tr className={`border-b hover:bg-muted/50 ${
+          isObjective ? 'bg-blue-50/50' : level > 0 ? 'bg-muted/20' : ''
+        }`}>
           <td className="py-3 px-4">
             <div className="flex items-center" style={{ paddingLeft: `${level * 24}px` }}>
               {hasChildren && (
@@ -93,16 +96,23 @@ export function AdminGoals() {
                   onClick={() => toggleExpanded(goal.id)}
                   className="mr-2 p-1 hover:bg-muted rounded"
                 >
-                  {isExpanded ? 
-                    <ChevronDown className="h-4 w-4" /> : 
+                  {isExpanded ?
+                    <ChevronDown className="h-4 w-4" /> :
                     <ChevronRight className="h-4 w-4" />
                   }
                 </button>
               )}
               <div className="flex-1">
-                <p className="font-medium">
-                  {goal.goal_number} {goal.title}
-                </p>
+                <div className="flex items-center space-x-2">
+                  {isObjective && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-600 text-white">
+                      Strategic Objective
+                    </span>
+                  )}
+                  <p className={`${isObjective ? 'font-bold text-lg' : 'font-medium'}`}>
+                    {goal.goal_number} {goal.title}
+                  </p>
+                </div>
                 {goal.description && (
                   <p className="text-sm text-muted-foreground mt-1">
                     {goal.description}
@@ -158,13 +168,23 @@ export function AdminGoals() {
           
           <td className="py-3 px-4">
             <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setOverrideModal(goal)}
-                className="p-1 hover:bg-muted rounded"
-                title="Override Status"
-              >
-                <Edit2 className="h-4 w-4" />
-              </button>
+              {isObjective ? (
+                <button
+                  onClick={() => navigate(`/${slug}/admin/objectives/${goal.id}/edit`)}
+                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  title="Edit Objective"
+                >
+                  Edit
+                </button>
+              ) : (
+                <button
+                  onClick={() => setOverrideModal(goal)}
+                  className="p-1 hover:bg-muted rounded"
+                  title="Override Status"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </td>
         </tr>

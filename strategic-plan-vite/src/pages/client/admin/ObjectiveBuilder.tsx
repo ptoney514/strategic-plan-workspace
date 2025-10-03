@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Target,
@@ -18,11 +18,13 @@ import {
   Save,
   X,
   TrendingUp,
-  Upload
+  Upload,
+  Edit2
 } from 'lucide-react';
 import { useDistrict } from '../../../hooks/useDistricts';
 import { OverallProgressBar } from '../../../components/OverallProgressBar';
 import { DEFAULT_OBJECTIVE_IMAGES } from '../../../lib/default-images';
+import { GoalsService } from '../../../lib/services/goals.service';
 import type { Goal } from '../../../lib/types';
 
 interface ComponentItem {
@@ -54,9 +56,10 @@ const AVAILABLE_COMPONENTS: ComponentItem[] = [
 ];
 
 export function ObjectiveBuilder() {
-  const { slug } = useParams();
+  const { slug, objectiveId } = useParams();
   const navigate = useNavigate();
-  const { district } = useDistrict(slug!);
+  const { data: district } = useDistrict(slug!);
+  const isEditMode = !!objectiveId;
   const [builderState, setBuilderState] = useState<BuilderState>({
     objective: {
       title: '',
@@ -76,8 +79,38 @@ export function ObjectiveBuilder() {
   });
   const [activeTab, setActiveTab] = useState<'objective' | 'goals'>('objective');
   const [previewMode, setPreviewMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const categories = [...new Set(AVAILABLE_COMPONENTS.map(c => c.category))];
+
+  // Load objective data in edit mode
+  useEffect(() => {
+    if (isEditMode && objectiveId) {
+      setIsLoading(true);
+      Promise.all([
+        GoalsService.getById(objectiveId),
+        GoalsService.getChildren(objectiveId)
+      ])
+        .then(([objective, children]) => {
+          if (objective) {
+            setBuilderState(prev => ({
+              ...prev,
+              objective: objective,
+              goals: children || [],
+              headerMode: objective.image_url ? 'image' : 'color'
+            }));
+          }
+        })
+        .catch(error => {
+          console.error('Error loading objective:', error);
+          alert('Failed to load objective');
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+  }, [isEditMode, objectiveId]);
 
   const [editingProperty, setEditingProperty] = useState<string | null>(null);
   const [propertyValue, setPropertyValue] = useState<string>('');
@@ -133,33 +166,71 @@ export function ObjectiveBuilder() {
   };
 
   const [showGoalModal, setShowGoalModal] = useState(false);
-  const [goalTitle, setGoalTitle] = useState('');
-  const [goalDescription, setGoalDescription] = useState('');
+  const [editingGoalIndex, setEditingGoalIndex] = useState<number | null>(null);
+  const [goalForm, setGoalForm] = useState({
+    title: '',
+    description: '',
+    indicator_text: '',
+    indicator_color: '#10b981'
+  });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const addGoal = () => {
+    setEditingGoalIndex(null);
+    setGoalForm({
+      title: '',
+      description: '',
+      indicator_text: '',
+      indicator_color: '#10b981'
+    });
     setShowGoalModal(true);
-    setGoalTitle('');
-    setGoalDescription('');
+  };
+
+  const editGoal = (index: number) => {
+    const goal = builderState.goals[index];
+    setEditingGoalIndex(index);
+    setGoalForm({
+      title: goal.title || '',
+      description: goal.description || '',
+      indicator_text: goal.indicator_text || '',
+      indicator_color: goal.indicator_color || '#10b981'
+    });
+    setShowGoalModal(true);
   };
 
   const saveGoal = () => {
-    if (!goalTitle.trim()) return;
+    if (!goalForm.title.trim()) return;
 
-    setBuilderState(prev => ({
-      ...prev,
-      goals: [...prev.goals, {
-        title: goalTitle,
-        description: goalDescription,
-        level: 1,
-        parent_id: prev.objective.id,
-        goal_number: `${prev.goals.length + 1}`,
-      }]
-    }));
+    if (editingGoalIndex !== null) {
+      // Update existing goal
+      setBuilderState(prev => ({
+        ...prev,
+        goals: prev.goals.map((g, i) => i === editingGoalIndex ? {
+          ...g,
+          title: goalForm.title,
+          description: goalForm.description,
+          indicator_text: goalForm.indicator_text,
+          indicator_color: goalForm.indicator_color
+        } : g)
+      }));
+    } else {
+      // Add new goal
+      setBuilderState(prev => ({
+        ...prev,
+        goals: [...prev.goals, {
+          title: goalForm.title,
+          description: goalForm.description,
+          indicator_text: goalForm.indicator_text,
+          indicator_color: goalForm.indicator_color,
+          level: 1,
+          parent_id: prev.objective.id,
+          goal_number: `${prev.goals.length + 1}`,
+        }]
+      }));
+    }
 
     setShowGoalModal(false);
-    setGoalTitle('');
-    setGoalDescription('');
+    setEditingGoalIndex(null);
   };
 
   const removeGoal = (index: number) => {
@@ -201,6 +272,75 @@ export function ObjectiveBuilder() {
         [componentKey]: !prev.visibleComponents[componentKey]
       }
     }));
+  };
+
+  const handleSaveAndPublish = async () => {
+    if (!district?.id) {
+      alert('District not found');
+      return;
+    }
+
+    // Validate required fields
+    if (!builderState.objective.title?.trim()) {
+      alert('Please enter an objective title');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      let savedObjective: Goal;
+
+      const objectiveData: Partial<Goal> = {
+        district_id: district.id,
+        title: builderState.objective.title,
+        description: builderState.objective.description,
+        level: 0,
+        parent_id: null,
+        image_url: builderState.objective.image_url,
+        header_color: builderState.objective.header_color,
+        overall_progress: builderState.objective.overall_progress,
+        overall_progress_display_mode: builderState.objective.overall_progress_display_mode,
+      };
+
+      if (isEditMode && objectiveId) {
+        // UPDATE existing objective
+        savedObjective = await GoalsService.update(objectiveId, objectiveData);
+        console.log('Updated objective:', savedObjective);
+
+        // Delete all existing child goals
+        const existingChildren = await GoalsService.getChildren(objectiveId);
+        for (const child of existingChildren) {
+          await GoalsService.delete(child.id);
+        }
+      } else {
+        // CREATE new objective
+        savedObjective = await GoalsService.create(objectiveData);
+        console.log('Created objective:', savedObjective);
+      }
+
+      // Create/recreate all Goals (level 1) under this objective
+      for (const goal of builderState.goals) {
+        const goalData: Partial<Goal> = {
+          district_id: district.id,
+          title: goal.title!,
+          description: goal.description,
+          indicator_text: goal.indicator_text,
+          indicator_color: goal.indicator_color,
+          level: 1,
+          parent_id: savedObjective.id,
+        };
+
+        await GoalsService.create(goalData);
+      }
+
+      alert(isEditMode ? 'Strategic Objective updated successfully!' : 'Strategic Objective created successfully!');
+      navigate(`/${slug}/admin/goals`);
+    } catch (error) {
+      console.error('Error saving objective:', error);
+      alert('Failed to save objective. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const renderCenterCanvas = () => {
@@ -565,20 +705,38 @@ export function ObjectiveBuilder() {
                     <div className="flex items-center space-x-2 flex-1 min-w-0">
                       <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-foreground">
-                          Goal {goal.goal_number}
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-medium text-foreground">
+                            Goal {goal.goal_number}
+                          </span>
+                          {goal.indicator_text && (
+                            <span
+                              className="text-xs px-2 py-0.5 rounded-full text-white"
+                              style={{ backgroundColor: goal.indicator_color || '#10b981' }}
+                            >
+                              {goal.indicator_text}
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground truncate">
                           {goal.title}
                         </div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => removeGoal(idx)}
-                      className="flex-shrink-0 p-1 opacity-0 group-hover:opacity-100 hover:bg-red-50 rounded transition-all"
-                    >
-                      <Trash2 className="h-4 w-4 text-red-600" />
-                    </button>
+                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-all">
+                      <button
+                        onClick={() => editGoal(idx)}
+                        className="flex-shrink-0 p-1 hover:bg-blue-50 rounded"
+                      >
+                        <Edit2 className="h-3.5 w-3.5 text-blue-600" />
+                      </button>
+                      <button
+                        onClick={() => removeGoal(idx)}
+                        className="flex-shrink-0 p-1 hover:bg-red-50 rounded"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -728,23 +886,53 @@ export function ObjectiveBuilder() {
     );
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading objective...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Objective Builder</h2>
-          <p className="text-sm text-muted-foreground mt-1">Build your strategic objective visually</p>
+          <h2 className="text-2xl font-bold text-foreground">
+            {isEditMode ? 'Edit Strategic Objective' : 'Create Strategic Objective'}
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isEditMode ? 'Update your strategic objective and goals' : 'Build your strategic objective visually'}
+          </p>
         </div>
         <div className="flex items-center space-x-2">
           <button
             onClick={() => navigate(`/${slug}/admin/goals`)}
             className="px-4 py-2 text-sm border border-border hover:bg-muted rounded-md transition-colors"
+            disabled={isSaving}
           >
             Cancel
           </button>
-          <button className="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors">
-            Save & Publish
+          <button
+            onClick={handleSaveAndPublish}
+            disabled={isSaving || !builderState.objective.title}
+            className="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          >
+            {isSaving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                <span>Save & Publish</span>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -959,40 +1147,104 @@ export function ObjectiveBuilder() {
         </div>
       )}
 
-      {/* Add Goal Modal */}
+      {/* Add/Edit Goal Modal */}
       {showGoalModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
             <div className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Add Goal</h3>
+              <h3 className="text-lg font-semibold mb-4">
+                {editingGoalIndex !== null ? 'Edit Goal' : 'Add Goal'}
+              </h3>
 
-              <div className="space-y-4">
+              <div className="space-y-5">
+                {/* Title */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Goal Title *</label>
                   <input
                     type="text"
-                    value={goalTitle}
-                    onChange={(e) => setGoalTitle(e.target.value)}
+                    value={goalForm.title}
+                    onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })}
                     placeholder="Enter goal title..."
                     className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                     autoFocus
                   />
                 </div>
 
+                {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Description (optional)</label>
+                  <label className="block text-sm font-medium mb-1">Description</label>
                   <textarea
-                    value={goalDescription}
-                    onChange={(e) => setGoalDescription(e.target.value)}
+                    value={goalForm.description}
+                    onChange={(e) => setGoalForm({ ...goalForm, description: e.target.value })}
                     placeholder="Enter goal description..."
-                    rows={4}
+                    rows={3}
                     className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                   />
                 </div>
 
+                {/* Visual Customization Section */}
+                <div className="border-t border-border pt-4">
+                  <h4 className="text-sm font-semibold mb-3 flex items-center space-x-2">
+                    <Flag className="h-4 w-4" />
+                    <span>Visual Badge (Optional)</span>
+                  </h4>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Indicator Text */}
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-2">
+                        Badge Text
+                      </label>
+                      <input
+                        type="text"
+                        value={goalForm.indicator_text}
+                        onChange={(e) => setGoalForm({ ...goalForm, indicator_text: e.target.value })}
+                        placeholder="e.g., Priority, Featured"
+                        maxLength={20}
+                        className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    {/* Indicator Color */}
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-2">
+                        Badge Color
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="color"
+                          value={goalForm.indicator_color}
+                          onChange={(e) => setGoalForm({ ...goalForm, indicator_color: e.target.value })}
+                          className="h-9 w-16 border border-border rounded cursor-pointer"
+                        />
+                        <div
+                          className="flex-1 h-9 rounded border border-border"
+                          style={{ backgroundColor: goalForm.indicator_color }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Preview Badge */}
+                  {goalForm.indicator_text && (
+                    <div className="mt-3 p-3 bg-muted/30 rounded-md">
+                      <p className="text-xs text-muted-foreground mb-2">Preview:</p>
+                      <span
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+                        style={{
+                          backgroundColor: goalForm.indicator_color,
+                          color: '#ffffff'
+                        }}
+                      >
+                        {goalForm.indicator_text}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                   <p className="text-xs text-blue-900">
-                    💡 This goal will be numbered automatically. You can add metrics to it after saving the objective.
+                    💡 This goal will be numbered automatically. Visual badges help highlight important or featured goals.
                   </p>
                 </div>
               </div>
@@ -1001,8 +1253,7 @@ export function ObjectiveBuilder() {
                 <button
                   onClick={() => {
                     setShowGoalModal(false);
-                    setGoalTitle('');
-                    setGoalDescription('');
+                    setEditingGoalIndex(null);
                   }}
                   className="px-4 py-2 text-sm border border-border hover:bg-muted rounded-md transition-colors"
                 >
@@ -1010,10 +1261,10 @@ export function ObjectiveBuilder() {
                 </button>
                 <button
                   onClick={saveGoal}
-                  disabled={!goalTitle.trim()}
+                  disabled={!goalForm.title.trim()}
                   className="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Add Goal
+                  {editingGoalIndex !== null ? 'Update Goal' : 'Add Goal'}
                 </button>
               </div>
             </div>
