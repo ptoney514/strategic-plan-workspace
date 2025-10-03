@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { StatusManager } from '../../../components/StatusManager';
-import { 
-  Target, 
-  AlertCircle, 
+import {
+  Target,
+  AlertCircle,
   CheckCircle,
   XCircle,
   Clock,
@@ -11,7 +11,8 @@ import {
   ChevronRight,
   Edit2,
   Save,
-  X
+  X,
+  Plus
 } from 'lucide-react';
 import { useDistrict } from '../../../hooks/useDistricts';
 import { useGoals } from '../../../hooks/useGoals';
@@ -20,6 +21,7 @@ import type { Goal, HierarchicalGoal } from '../../../lib/types';
 
 export function AdminGoals() {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const { district } = useDistrict(slug!);
   const { goals, loading } = useGoals(district?.id);
   const { metrics } = useMetrics(district?.id);
@@ -189,14 +191,18 @@ export function AdminGoals() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">
-              Goals & Status Management
+              Strategic Objectives & Goals
             </h1>
             <p className="text-muted-foreground mt-1">
-              Review and override goal statuses
+              Manage your strategic objectives and their goals
             </p>
           </div>
-          <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
-            Save All Changes
+          <button
+            onClick={() => navigate(`/${slug}/admin/objectives/new`)}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Create Strategic Objective</span>
           </button>
         </div>
         

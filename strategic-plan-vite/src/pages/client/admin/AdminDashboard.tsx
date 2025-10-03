@@ -89,11 +89,11 @@ export function AdminDashboard() {
   
   const quickActions = [
     {
-      title: 'Update Metrics',
-      description: `${metricsNeedingUpdates} metrics need updating`,
-      icon: BarChart3,
-      link: `/${slug}/admin/metrics`,
-      color: 'bg-blue-500'
+      title: 'Create Strategic Objective',
+      description: 'Build a new objective visually',
+      icon: Target,
+      link: `/${slug}/admin/objectives/new`,
+      color: 'bg-indigo-500'
     },
     {
       title: 'Review Goals',
@@ -103,11 +103,11 @@ export function AdminDashboard() {
       color: 'bg-purple-500'
     },
     {
-      title: 'Import Data',
-      description: 'Bulk update from Excel',
-      icon: Upload,
-      link: `/${slug}/admin/import`,
-      color: 'bg-green-500'
+      title: 'Update Metrics',
+      description: `${metricsNeedingUpdates} metrics need updating`,
+      icon: BarChart3,
+      link: `/${slug}/admin/metrics`,
+      color: 'bg-blue-500'
     },
     {
       title: 'View Audit Trail',

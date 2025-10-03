@@ -8,16 +8,14 @@ import {
   Home,
   ChevronDown,
   User,
-  LogOut,
-  Palette
 } from 'lucide-react';
 import { useDistrict } from '../hooks/useDistricts';
 
 /**
- * ClientAdminLayout - Layout for client admin area (/:slug/admin)
- * Supabase-style layout with left sidebar and top header
+ * ClientAdminFullWidthLayout - Full-width layout for pages like Objective Builder
+ * Same header as ClientAdminLayout but no container constraints on content
  */
-export function ClientAdminLayout() {
+export function ClientAdminFullWidthLayout() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,7 +58,6 @@ export function ClientAdminLayout() {
             {/* Left: Logo & Brand */}
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-2">
-                {/* Placeholder for logo - replace with actual logo when available */}
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded flex items-center justify-center">
                   <span className="text-white font-bold text-sm">SP</span>
                 </div>
@@ -82,12 +79,12 @@ export function ClientAdminLayout() {
               <Link
                 to={`/${slug}/admin`}
                 className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  isActiveRoute(`/${slug}/admin`) && !location.pathname.includes('/goals') && !location.pathname.includes('/settings') && !location.pathname.includes('/audit')
+                  isActiveRoute(`/${slug}/admin`) && !location.pathname.includes('/goals') && !location.pathname.includes('/metrics') && !location.pathname.includes('/audit')
                     ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                 }`}
               >
-                <Home className="h-4 w-4" />
+                <Settings className="h-4 w-4" />
                 <span>Dashboard</span>
               </Link>
 
@@ -104,15 +101,15 @@ export function ClientAdminLayout() {
               </Link>
 
               <Link
-                to={`/${slug}/admin/settings`}
+                to={`/${slug}/admin/metrics`}
                 className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  isActiveRoute(`/${slug}/admin/settings`)
+                  isActiveRoute(`/${slug}/admin/metrics`)
                     ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                 }`}
               >
-                <Palette className="h-4 w-4" />
-                <span>Branding</span>
+                <BarChart2 className="h-4 w-4" />
+                <span>Metrics</span>
               </Link>
 
               <Link
@@ -153,11 +150,9 @@ export function ClientAdminLayout() {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main Content - Full Width (No Container) */}
       <main className="flex-1 overflow-auto">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <Outlet />
-        </div>
+        <Outlet />
       </main>
     </div>
   );

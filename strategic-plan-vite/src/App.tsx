@@ -5,6 +5,7 @@ import { RootLayout } from './layouts/RootLayout';
 import { SystemAdminLayout } from './layouts/SystemAdminLayout';
 import { ClientPublicLayout } from './layouts/ClientPublicLayout';
 import { ClientAdminLayout } from './layouts/ClientAdminLayout';
+import { ClientAdminFullWidthLayout } from './layouts/ClientAdminFullWidthLayout';
 
 // System Admin Pages
 import { SystemDashboard } from './pages/admin/SystemDashboard';
@@ -22,6 +23,8 @@ import { AdminDashboard } from './pages/client/admin/AdminDashboard';
 import { AdminGoals } from './pages/client/admin/AdminGoals';
 import { AdminMetrics } from './pages/client/admin/AdminMetrics';
 import { AdminAudit } from './pages/client/admin/AdminAudit';
+import { AdminSettings } from './pages/client/admin/AdminSettings';
+import { ObjectiveBuilder } from './pages/client/admin/ObjectiveBuilder';
 
 function App() {
   return (
@@ -51,7 +54,9 @@ function App() {
         <Route path="/:slug/admin" element={<ClientAdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="goals" element={<AdminGoals />} />
-          <Route path="metrics" element={<AdminMetrics />} />
+          <Route path="objectives/new" element={<ObjectiveBuilder />} />
+          <Route path="objectives/:objectiveId/edit" element={<ObjectiveBuilder />} />
+          <Route path="settings" element={<AdminSettings />} />
           <Route path="audit" element={<AdminAudit />} />
         </Route>
 
