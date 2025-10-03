@@ -167,33 +167,47 @@ export function ObjectiveBuilder() {
 
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [editingGoalIndex, setEditingGoalIndex] = useState<number | null>(null);
+  const [goalWizardStep, setGoalWizardStep] = useState<1 | 2>(1);
   const [goalForm, setGoalForm] = useState({
     title: '',
     description: '',
     indicator_text: '',
-    indicator_color: '#10b981'
+    indicator_color: '#10b981',
+    metrics: [] as Array<{
+      name: string;
+      visualization_type: string;
+      target_value?: number;
+      current_value?: number;
+      unit: string;
+    }>
   });
+  const [selectedVisualization, setSelectedVisualization] = useState<string>('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const addGoal = () => {
     setEditingGoalIndex(null);
+    setGoalWizardStep(1);
     setGoalForm({
       title: '',
       description: '',
       indicator_text: '',
-      indicator_color: '#10b981'
+      indicator_color: '#10b981',
+      metrics: []
     });
+    setSelectedVisualization('');
     setShowGoalModal(true);
   };
 
   const editGoal = (index: number) => {
     const goal = builderState.goals[index];
     setEditingGoalIndex(index);
+    setGoalWizardStep(1);
     setGoalForm({
       title: goal.title || '',
       description: goal.description || '',
       indicator_text: goal.indicator_text || '',
-      indicator_color: goal.indicator_color || '#10b981'
+      indicator_color: goal.indicator_color || '#10b981',
+      metrics: (goal as any).metrics || []
     });
     setShowGoalModal(true);
   };
@@ -1147,16 +1161,44 @@ export function ObjectiveBuilder() {
         </div>
       )}
 
-      {/* Add/Edit Goal Modal */}
+      {/* Add/Edit Goal Modal - Wizard */}
       {showGoalModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold mb-4">
-                {editingGoalIndex !== null ? 'Edit Goal' : 'Add Goal'}
-              </h3>
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="p-6 border-b border-border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">
+                    {editingGoalIndex !== null ? 'Edit Goal' : 'Create New Goal'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {goalWizardStep === 1 ? 'Step 1: Goal Information' : 'Step 2: Add Metrics (Optional)'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowGoalModal(false);
+                    setGoalWizardStep(1);
+                    setEditingGoalIndex(null);
+                  }}
+                  className="p-1 hover:bg-muted rounded"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
 
-              <div className="space-y-5">
+              {/* Step Indicator */}
+              <div className="flex items-center space-x-2 mt-4">
+                <div className={`flex-1 h-1 rounded-full ${goalWizardStep >= 1 ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                <div className={`flex-1 h-1 rounded-full ${goalWizardStep >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`} />
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {goalWizardStep === 1 ? (
+                <div className="space-y-5">
                 {/* Title */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Goal Title *</label>
@@ -1242,30 +1284,102 @@ export function ObjectiveBuilder() {
                   )}
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                  <p className="text-xs text-blue-900">
-                    💡 This goal will be numbered automatically. Visual badges help highlight important or featured goals.
-                  </p>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-5">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Add Metrics to "{goalForm.title}"</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Choose how you want to visualize performance for this goal (optional)
+                    </p>
+                  </div>
 
-              <div className="flex items-center justify-end space-x-2 mt-6">
+                  {/* Visualization Type Selector */}
+                  <div className="grid grid-cols-3 gap-3">
+                    {/* Available Visualizations */}
+                    {[
+                      { id: 'percentage', icon: '%', label: 'Percentage', desc: 'Show progress as %', available: true },
+                      { id: 'number', icon: '#', label: 'Number/KPI', desc: 'Display key number', available: true },
+                      { id: 'bar', icon: '📊', label: 'Bar Chart', desc: 'Compare values', available: true },
+                      { id: 'line', icon: '📈', label: 'Line Chart', desc: 'Show trends', available: false },
+                      { id: 'donut', icon: '🍩', label: 'Donut Chart', desc: 'Proportions', available: false },
+                      { id: 'gauge', icon: '⏱️', label: 'Gauge', desc: 'Performance scale', available: false },
+                    ].map((viz) => (
+                      <button
+                        key={viz.id}
+                        onClick={() => viz.available && setSelectedVisualization(viz.id)}
+                        disabled={!viz.available}
+                        className={`p-4 border-2 rounded-lg text-left transition-all ${
+                          selectedVisualization === viz.id
+                            ? 'border-blue-600 bg-blue-50'
+                            : viz.available
+                            ? 'border-border hover:border-blue-300'
+                            : 'border-border opacity-50 cursor-not-allowed'
+                        }`}
+                      >
+                        <div className="text-2xl mb-2">{viz.icon}</div>
+                        <div className="font-medium text-sm">{viz.label}</div>
+                        <div className="text-xs text-muted-foreground mt-1">{viz.desc}</div>
+                        {!viz.available && (
+                          <div className="mt-2">
+                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
+                              Coming Soon
+                            </span>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                    <p className="text-xs text-blue-900">
+                      💡 Skip this step to add metrics later, or choose a visualization to add one now.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer - Navigation */}
+            <div className="p-6 border-t border-border bg-muted/30">
+              <div className="flex items-center justify-between">
                 <button
                   onClick={() => {
                     setShowGoalModal(false);
+                    setGoalWizardStep(1);
                     setEditingGoalIndex(null);
                   }}
                   className="px-4 py-2 text-sm border border-border hover:bg-muted rounded-md transition-colors"
                 >
                   Cancel
                 </button>
-                <button
-                  onClick={saveGoal}
-                  disabled={!goalForm.title.trim()}
-                  className="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {editingGoalIndex !== null ? 'Update Goal' : 'Add Goal'}
-                </button>
+
+                <div className="flex items-center space-x-2">
+                  {goalWizardStep === 2 && (
+                    <button
+                      onClick={() => setGoalWizardStep(1)}
+                      className="px-4 py-2 text-sm border border-border hover:bg-muted rounded-md transition-colors"
+                    >
+                      Back
+                    </button>
+                  )}
+                  {goalWizardStep === 1 ? (
+                    <button
+                      onClick={() => setGoalWizardStep(2)}
+                      disabled={!goalForm.title.trim()}
+                      className="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next: Add Metrics
+                    </button>
+                  ) : (
+                    <button
+                      onClick={saveGoal}
+                      className="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors"
+                    >
+                      {editingGoalIndex !== null ? 'Update Goal' : 'Save Goal'}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
