@@ -136,8 +136,7 @@ export function DistrictDashboard() {
                     <div className="mt-5 flex items-center gap-4 text-sm text-neutral-600">
                       <div className="inline-flex items-center gap-1.5">
                         <Target className="h-4 w-4 text-neutral-400" />
-                        <span className="font-medium text-neutral-800">{subGoalsCount}</span>
-                        <span>Goals</span>
+                        <span>Goal overall progress</span>
                       </div>
                     </div>
 
@@ -172,7 +171,7 @@ export function DistrictDashboard() {
                   </div>
                   <div className="px-5 md:px-6 pb-5 md:pb-6">
                     <button className="inline-flex items-center gap-2 text-sm font-medium text-neutral-800 hover:text-neutral-900">
-                      View details
+                      Annual progress click here
                       <ArrowRight className="h-4 w-4" />
                     </button>
                   </div>
@@ -309,23 +308,11 @@ export function DistrictDashboard() {
           <div className="h-full flex flex-col">
             {/* Header Section - Fixed */}
             <div className="p-6 border-b border-neutral-200 space-y-4">
+              {/* Description */}
               <div>
-                <h2 className="text-2xl font-bold text-neutral-900">{selectedGoal.title}</h2>
-                {selectedGoal.description && (
-                  <p className="text-neutral-600 mt-2">{selectedGoal.description}</p>
-                )}
-              </div>
-
-              {/* Status Summary Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-neutral-500 mb-1">Overall Status</div>
-                  <div className="text-lg font-semibold">On Track</div>
-                </div>
-                <div>
-                  <div className="text-sm text-neutral-500 mb-1">Sub-goals</div>
-                  <div className="text-lg font-semibold">{selectedGoal.children?.length || 0}</div>
-                </div>
+                <p className="text-neutral-600 text-sm leading-relaxed">
+                  {selectedGoal.description || 'Strategic initiatives focused on this objective'}
+                </p>
               </div>
             </div>
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, ChevronDown, User, Globe, GraduationCap } from 'lucide-react';
+import { Menu, X, ChevronDown, User, Globe, GraduationCap, Settings } from 'lucide-react';
 import { ImageWithFallback } from './ImageWithFallback';
 
 interface HomepageHeaderProps {
@@ -39,6 +39,13 @@ export function HomepageHeader({
               style={{ backgroundColor: primaryColor }}
             >
               STRATEGIC PLAN
+            </Link>
+            <Link
+              to={`/${districtSlug}/admin`}
+              className="text-white hover:opacity-80 transition-colors text-sm font-medium tracking-wide flex items-center gap-1"
+            >
+              <Settings className="w-4 h-4" />
+              CLIENT ADMIN
             </Link>
           </nav>
         </div>
@@ -128,6 +135,13 @@ export function HomepageHeader({
                 style={{ color: primaryColor }}
               >
                 STRATEGIC PLAN
+              </Link>
+              <Link
+                to={`/${districtSlug}/admin`}
+                className="block text-[#2C2C2C] hover:opacity-80 transition-colors py-2 font-medium flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                CLIENT ADMIN
               </Link>
             </nav>
 
