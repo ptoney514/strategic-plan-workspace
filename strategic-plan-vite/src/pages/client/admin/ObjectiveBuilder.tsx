@@ -25,7 +25,9 @@ import { useDistrict } from '../../../hooks/useDistricts';
 import { OverallProgressBar } from '../../../components/OverallProgressBar';
 import { DEFAULT_OBJECTIVE_IMAGES } from '../../../lib/default-images';
 import { GoalsService } from '../../../lib/services/goals.service';
-import type { Goal } from '../../../lib/types';
+import type { Goal, TimeSeriesDataPoint, ChartType } from '../../../lib/types';
+import { ChartTypePicker } from '../../../components/ChartTypePicker';
+import { TimeSeriesDataEntry } from '../../../components/TimeSeriesDataEntry';
 
 interface ComponentItem {
   id: string;
@@ -222,6 +224,18 @@ export function ObjectiveBuilder() {
   });
   const [goalFormError, setGoalFormError] = useState<string | undefined>(undefined);
   const [selectedVisualization, setSelectedVisualization] = useState<string>('');
+
+  // Measure form state
+  const [measureForm, setMeasureForm] = useState({
+    metric_name: '',
+    description: '',
+    current_value: '',
+    target_value: '',
+    unit: '%'
+  });
+  const [measureChartType, setMeasureChartType] = useState<ChartType | undefined>();
+  const [measureDataPoints, setMeasureDataPoints] = useState<TimeSeriesDataPoint[]>([]);
+
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const addGoal = () => {
@@ -1465,7 +1479,19 @@ export function ObjectiveBuilder() {
                     ].map((viz) => (
                       <button
                         key={viz.id}
-                        onClick={() => viz.available && setSelectedVisualization(viz.id)}
+                        onClick={() => {
+                          if (viz.available) {
+                            setSelectedVisualization(viz.id);
+                            // Map viz.id to ChartType
+                            const chartTypeMap: Record<string, ChartType> = {
+                              'bar': 'bar',
+                              'line': 'line',
+                              'percentage': 'line',
+                              'number': 'bar'
+                            };
+                            setMeasureChartType(chartTypeMap[viz.id] || 'bar');
+                          }
+                        }}
                         disabled={!viz.available}
                         className={`p-4 border-2 rounded-lg text-left transition-all ${
                           selectedVisualization === viz.id
@@ -1498,14 +1524,18 @@ export function ObjectiveBuilder() {
                           <label className="block text-xs font-medium mb-1">Metric Name *</label>
                           <input
                             type="text"
-                            placeholder="e.g., Student Achievement Rate"
+                            value={measureForm.metric_name}
+                            onChange={(e) => setMeasureForm({ ...measureForm, metric_name: e.target.value })}
+                            placeholder="e.g., Student Belonging Score"
                             className="w-full px-3 py-2 border border-border rounded-md text-sm"
                           />
                         </div>
                         <div className="col-span-2">
                           <label className="block text-xs font-medium mb-1">Measure</label>
                           <textarea
-                            placeholder="What are you measuring? (e.g., 1-5 scale Student - overall belonging score)"
+                            value={measureForm.description}
+                            onChange={(e) => setMeasureForm({ ...measureForm, description: e.target.value })}
+                            placeholder="Format: [Data Source] - [Scale/Type] - [Description] (e.g., Student Survey - 1-5 scale - Overall belonging score)"
                             className="w-full px-3 py-2 border border-border rounded-md text-sm"
                             rows={2}
                           />
@@ -1514,6 +1544,9 @@ export function ObjectiveBuilder() {
                           <label className="block text-xs font-medium mb-1">Current Value</label>
                           <input
                             type="number"
+                            step="0.01"
+                            value={measureForm.current_value}
+                            onChange={(e) => setMeasureForm({ ...measureForm, current_value: e.target.value })}
                             placeholder="0"
                             className="w-full px-3 py-2 border border-border rounded-md text-sm"
                           />
@@ -1522,6 +1555,9 @@ export function ObjectiveBuilder() {
                           <label className="block text-xs font-medium mb-1">Target Value</label>
                           <input
                             type="number"
+                            step="0.01"
+                            value={measureForm.target_value}
+                            onChange={(e) => setMeasureForm({ ...measureForm, target_value: e.target.value })}
                             placeholder="100"
                             className="w-full px-3 py-2 border border-border rounded-md text-sm"
                           />
@@ -1530,12 +1566,22 @@ export function ObjectiveBuilder() {
                           <label className="block text-xs font-medium mb-1">Unit</label>
                           <input
                             type="text"
+                            value={measureForm.unit}
+                            onChange={(e) => setMeasureForm({ ...measureForm, unit: e.target.value })}
                             placeholder="%"
-                            defaultValue="%"
                             className="w-full px-3 py-2 border border-border rounded-md text-sm"
                           />
                         </div>
                       </div>
+
+                      {/* Time-Series Data Entry */}
+                      <div className="mt-4 pt-4 border-t border-blue-200">
+                        <TimeSeriesDataEntry
+                          dataPoints={measureDataPoints}
+                          onChange={setMeasureDataPoints}
+                        />
+                      </div>
+
                       <button
                         onClick={() => setSelectedVisualization('')}
                         className="mt-3 text-xs text-blue-600 hover:text-blue-700"
