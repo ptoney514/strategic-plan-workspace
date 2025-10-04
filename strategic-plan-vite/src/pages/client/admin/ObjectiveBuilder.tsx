@@ -1331,9 +1331,57 @@ export function ObjectiveBuilder() {
                     ))}
                   </div>
 
+                  {/* Metric Data Input - Shows when visualization is selected */}
+                  {selectedVisualization && (
+                    <div className="border border-blue-200 rounded-lg p-4 bg-blue-50/50">
+                      <h4 className="font-semibold text-sm mb-3">Metric Details</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium mb-1">Metric Name *</label>
+                          <input
+                            type="text"
+                            placeholder="e.g., Student Achievement Rate"
+                            className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1">Current Value</label>
+                          <input
+                            type="number"
+                            placeholder="0"
+                            className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1">Target Value</label>
+                          <input
+                            type="number"
+                            placeholder="100"
+                            className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium mb-1">Unit</label>
+                          <input
+                            type="text"
+                            placeholder="%"
+                            defaultValue="%"
+                            className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setSelectedVisualization('')}
+                        className="mt-3 text-xs text-blue-600 hover:text-blue-700"
+                      >
+                        ← Change visualization type
+                      </button>
+                    </div>
+                  )}
+
                   <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                     <p className="text-xs text-blue-900">
-                      💡 Skip this step to add metrics later, or choose a visualization to add one now.
+                      💡 {selectedVisualization ? 'Fill in metric details above, or skip to add later.' : 'Skip this step to add metrics later, or choose a visualization to add one now.'}
                     </p>
                   </div>
                 </div>
