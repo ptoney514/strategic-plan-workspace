@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { StatusManager } from '../../../components/StatusManager';
+import { GoalEditWizard } from '../../../components/GoalEditWizard';
 import {
   Target,
   AlertCircle,
@@ -29,7 +30,7 @@ export function AdminGoals() {
   const { data: goals, isLoading: loading, refetch } = useGoals(district?.id!);
   const { data: metrics } = useMetrics(district?.id!);
   const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
-  const [editingGoal, setEditingGoal] = useState<string | null>(null);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [overrideModal, setOverrideModal] = useState<Goal | null>(null);
   const [deleteModal, setDeleteModal] = useState<Goal | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -193,7 +194,7 @@ export function AdminGoals() {
               {isObjective ? (
                 <>
                   <button
-                    onClick={() => navigate(`/${slug}/admin/objectives/${goal.id}/edit`)}
+                    onClick={() => setEditingGoal(goal)}
                     className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center space-x-1"
                     title="Edit Objective"
                   >
@@ -337,7 +338,7 @@ export function AdminGoals() {
 
                   <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
                     <button
-                      onClick={() => navigate(`/${slug}/admin/objectives/${goal.id}/edit`)}
+                      onClick={() => setEditingGoal(goal)}
                       className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-primary border border-primary rounded-md hover:bg-primary/10 transition-colors"
                     >
                       <Edit2 className="h-3 w-3" />
@@ -485,6 +486,17 @@ export function AdminGoals() {
             </div>
           </div>
         )}
+
+        {/* Edit Goal Wizard */}
+        <GoalEditWizard
+          goal={editingGoal}
+          isOpen={!!editingGoal}
+          onClose={() => setEditingGoal(null)}
+          onSuccess={() => {
+            refetch();
+            setEditingGoal(null);
+          }}
+        />
     </div>
   );
 }
