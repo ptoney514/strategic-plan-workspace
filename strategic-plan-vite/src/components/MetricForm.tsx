@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MetricsService } from '../lib/services';
-import type { Metric } from '../lib/types';
-import { Loader2 } from 'lucide-react';
+import type { Metric, TimeSeriesDataPoint, ChartType } from '../lib/types';
+import { Loader2, HelpCircle } from 'lucide-react';
+import { TimeSeriesDataEntry } from './TimeSeriesDataEntry';
+import { ChartTypePicker } from './ChartTypePicker';
 
 const metricSchema = z.object({
   metric_name: z.string().min(1, 'Metric name is required').max(100, 'Name must be less than 100 characters'),
@@ -28,15 +30,20 @@ interface MetricFormProps {
   onCancel?: () => void;
 }
 
-export function MetricForm({ 
-  metric, 
+export function MetricForm({
+  metric,
   goalId,
   districtId,
-  onSuccess, 
-  onCancel 
+  onSuccess,
+  onCancel
 }: MetricFormProps) {
   const queryClient = useQueryClient();
-  
+  const [dataPoints, setDataPoints] = useState<TimeSeriesDataPoint[]>(
+    (metric?.data_points as TimeSeriesDataPoint[]) || []
+  );
+  const [chartType, setChartType] = useState<ChartType | undefined>(metric?.chart_type);
+  const [showMeasureHelp, setShowMeasureHelp] = useState(false);
+
   const createMetric = useMutation({
     mutationFn: (data: Partial<Metric>) => MetricsService.create(data),
     onSuccess: () => {
@@ -74,14 +81,20 @@ export function MetricForm({
 
   const onSubmit = async (data: MetricFormData) => {
     try {
+      const metricData = {
+        ...data,
+        data_points: dataPoints.length > 0 ? dataPoints : undefined,
+        chart_type: chartType
+      };
+
       if (metric) {
         await updateMetric.mutateAsync({
           id: metric.id,
-          updates: data
+          updates: metricData
         });
       } else {
         await createMetric.mutateAsync({
-          ...data,
+          ...metricData,
           goal_id: goalId,
           district_id: districtId,
         });
@@ -115,16 +128,37 @@ export function MetricForm({
         </div>
 
         <div className="md:col-span-2">
-          <label htmlFor="description" className="block text-sm font-medium text-foreground mb-1">
-            Measure
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label htmlFor="description" className="block text-sm font-medium text-foreground">
+              Measure
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowMeasureHelp(!showMeasureHelp)}
+              className="text-primary hover:text-primary/80 text-xs flex items-center gap-1"
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
+              {showMeasureHelp ? 'Hide' : 'Show'} Examples
+            </button>
+          </div>
           <textarea
             id="description"
             {...register('description')}
-            rows={3}
+            rows={showMeasureHelp ? 2 : 3}
             className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="What are you measuring? (e.g., 1-5 scale Student - overall belonging score)"
+            placeholder="What are you measuring? (e.g., Teacher Self-Assessment Survey - 1-5 scale - Average instructional model score)"
           />
+          {showMeasureHelp && (
+            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md text-xs space-y-1.5">
+              <p className="font-medium text-blue-900">Format: [Data Source] - [Scale/Type] - [Description]</p>
+              <div className="space-y-1 text-blue-800">
+                <p>• Teacher Self-Assessment Survey - 1-5 scale (5 high) - Average instructional model score</p>
+                <p>• Student Belonging Survey - Likert 1-5 - Overall belonging score</p>
+                <p>• State Testing - Percent - Higher or lower than state average</p>
+                <p>• Enrollment Data - Ratio - Proportion of students in Honors/AP courses</p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div>
@@ -224,6 +258,21 @@ export function MetricForm({
           />
         </div>
       </div>
+
+      {/* Chart Type Selection */}
+      <div className="pt-4 border-t border-border">
+        <ChartTypePicker value={chartType} onChange={setChartType} />
+      </div>
+
+      {/* Time-Series Data Entry */}
+      {chartType && (
+        <div className="pt-4 border-t border-border">
+          <TimeSeriesDataEntry
+            dataPoints={dataPoints}
+            onChange={setDataPoints}
+          />
+        </div>
+      )}
 
       {/* Progress Preview */}
       <div className="p-4 bg-secondary/30 rounded-lg">
