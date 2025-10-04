@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { X, ChevronLeft, ChevronRight, Check, Target, Flag, Zap, Users, Building2, AlertCircle, BarChart3, Plus, Edit2, Trash2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Check, Target, Flag, Zap, Users, Building2, AlertCircle, BarChart3, Plus, Edit2, Trash2, HelpCircle } from 'lucide-react';
 import { Button, Input, Textarea, Label, Badge } from './ui';
 import { useUpdateGoal } from '../hooks/useGoals';
 import { useCreateMetric, useUpdateMetric, useDeleteMetric } from '../hooks/useMetrics';
 import { toast } from './Toast';
-import type { Goal, Metric } from '../lib/types';
+import type { Goal, Metric, TimeSeriesDataPoint, ChartType } from '../lib/types';
+import { ChartTypePicker } from './ChartTypePicker';
+import { TimeSeriesDataEntry } from './TimeSeriesDataEntry';
 
 interface GoalEditWizardProps {
   goal: Goal | null;
@@ -47,6 +49,9 @@ export function GoalEditWizard({
     metric_type: 'percentage' as const
   });
   const [localMetrics, setLocalMetrics] = useState<Metric[]>([]);
+  const [metricChartType, setMetricChartType] = useState<ChartType | undefined>();
+  const [metricDataPoints, setMetricDataPoints] = useState<TimeSeriesDataPoint[]>([]);
+  const [showMeasureHelp, setShowMeasureHelp] = useState(false);
 
   useEffect(() => {
     if (goal) {
@@ -122,6 +127,8 @@ export function GoalEditWizard({
       data_source: metric.data_source || 'manual',
       metric_type: metric.metric_type || 'percentage'
     });
+    setMetricChartType(metric.chart_type);
+    setMetricDataPoints((metric.data_points as TimeSeriesDataPoint[]) || []);
   };
 
   const handleSaveMetricToList = () => {
@@ -133,7 +140,9 @@ export function GoalEditWizard({
       unit: metricForm.unit,
       data_source: metricForm.data_source,
       metric_type: metricForm.metric_type,
-      goal_id: goal?.id
+      goal_id: goal?.id,
+      chart_type: metricChartType,
+      data_points: metricDataPoints.length > 0 ? metricDataPoints : undefined
     };
 
     if (editingMetricIndex !== null) {
@@ -157,6 +166,8 @@ export function GoalEditWizard({
       data_source: 'manual',
       metric_type: 'percentage'
     });
+    setMetricChartType(undefined);
+    setMetricDataPoints([]);
   };
 
   const handleRemoveMetric = (index: number) => {
@@ -466,14 +477,35 @@ export function GoalEditWizard({
                     </div>
 
                     <div>
-                      <Label htmlFor="metric_description">Measure</Label>
+                      <div className="flex items-center justify-between mb-1">
+                        <Label htmlFor="metric_description">Measure</Label>
+                        <button
+                          type="button"
+                          onClick={() => setShowMeasureHelp(!showMeasureHelp)}
+                          className="text-primary hover:text-primary/80 text-xs flex items-center gap-1"
+                        >
+                          <HelpCircle className="h-3.5 w-3.5" />
+                          {showMeasureHelp ? 'Hide' : 'Show'} Examples
+                        </button>
+                      </div>
                       <Textarea
                         id="metric_description"
                         value={metricForm.description}
                         onChange={(e) => setMetricForm({ ...metricForm, description: e.target.value })}
-                        placeholder="What are you measuring? (e.g., 1-5 scale Student - overall belonging score)"
-                        rows={2}
+                        placeholder="Format: [Data Source] - [Scale/Type] - [Description] (e.g., Teacher Survey - 1-5 scale - Average instructional score)"
+                        rows={showMeasureHelp ? 2 : 2}
                       />
+                      {showMeasureHelp && (
+                        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md text-xs space-y-1.5">
+                          <p className="font-medium text-blue-900">Format: [Data Source] - [Scale/Type] - [Description]</p>
+                          <div className="space-y-1 text-blue-800">
+                            <p>• Teacher Self-Assessment Survey - 1-5 scale (5 high) - Average instructional model score</p>
+                            <p>• Student Belonging Survey - Likert 1-5 - Overall belonging score</p>
+                            <p>• State Testing - Percent - Higher or lower than state average</p>
+                            <p>• Enrollment Data - Ratio - Proportion of students in Honors/AP courses</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-3 gap-3">
@@ -509,6 +541,21 @@ export function GoalEditWizard({
                         />
                       </div>
                     </div>
+
+                    {/* Chart Type Selection */}
+                    <div className="pt-4 border-t border-gray-200">
+                      <ChartTypePicker value={metricChartType} onChange={setMetricChartType} />
+                    </div>
+
+                    {/* Time-Series Data Entry */}
+                    {metricChartType && (
+                      <div className="pt-4 border-t border-gray-200">
+                        <TimeSeriesDataEntry
+                          dataPoints={metricDataPoints}
+                          onChange={setMetricDataPoints}
+                        />
+                      </div>
+                    )}
 
                     <div className="flex justify-end gap-2 pt-2">
                       {(editingMetricIndex !== null || localMetrics.length > 0) && (
