@@ -116,14 +116,14 @@ export function MetricForm({
 
         <div className="md:col-span-2">
           <label htmlFor="description" className="block text-sm font-medium text-foreground mb-1">
-            Description
+            Measure
           </label>
           <textarea
             id="description"
             {...register('description')}
             rows={3}
             className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="Describe what this metric measures"
+            placeholder="What are you measuring? (e.g., 1-5 scale Student - overall belonging score)"
           />
         </div>
 

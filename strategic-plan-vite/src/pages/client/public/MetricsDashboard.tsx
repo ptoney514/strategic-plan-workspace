@@ -138,7 +138,7 @@ export function MetricsDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-card-foreground">
-                Metrics Dashboard
+                Measures Dashboard
               </h1>
               <p className="text-muted-foreground mt-1">
                 Real-time performance tracking for {district.name}

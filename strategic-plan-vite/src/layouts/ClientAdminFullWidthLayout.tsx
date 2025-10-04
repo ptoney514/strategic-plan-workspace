@@ -109,7 +109,7 @@ export function ClientAdminFullWidthLayout() {
                 }`}
               >
                 <BarChart2 className="h-4 w-4" />
-                <span>Metrics</span>
+                <span>Measures</span>
               </Link>
 
               <Link

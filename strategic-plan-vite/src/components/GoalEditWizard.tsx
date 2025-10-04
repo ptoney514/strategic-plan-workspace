@@ -243,7 +243,7 @@ export function GoalEditWizard({
   const steps = [
     { number: 1, label: 'Basic Information' },
     { number: 2, label: 'Ownership & Details' },
-    { number: 3, label: 'Metrics' },
+    { number: 3, label: 'Measures' },
     { number: 4, label: 'Review & Save' }
   ];
 
@@ -442,16 +442,16 @@ export function GoalEditWizard({
             {currentStep === 3 && (
               <div className="max-w-2xl mx-auto space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Metrics</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Measures</h3>
                   <p className="text-sm text-gray-600 mb-6">
-                    Define how success will be measured for this goal
+                    Define what you'll measure to track progress for this goal
                   </p>
                 </div>
 
                 {editingMetricIndex !== null || localMetrics.length === 0 ? (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
                     <h4 className="font-medium text-gray-900">
-                      {editingMetricIndex !== null ? 'Edit Metric' : 'Add New Metric'}
+                      {editingMetricIndex !== null ? 'Edit Measure' : 'Add New Measure'}
                     </h4>
 
                     <div>
@@ -466,12 +466,12 @@ export function GoalEditWizard({
                     </div>
 
                     <div>
-                      <Label htmlFor="metric_description">Description</Label>
+                      <Label htmlFor="metric_description">Measure</Label>
                       <Textarea
                         id="metric_description"
                         value={metricForm.description}
                         onChange={(e) => setMetricForm({ ...metricForm, description: e.target.value })}
-                        placeholder="Optional: How is this metric measured?"
+                        placeholder="What are you measuring? (e.g., 1-5 scale Student - overall belonging score)"
                         rows={2}
                       />
                     </div>
@@ -538,7 +538,7 @@ export function GoalEditWizard({
                         onClick={handleSaveMetricToList}
                         disabled={!metricForm.metric_name.trim()}
                       >
-                        {editingMetricIndex !== null ? 'Update Metric' : 'Add Metric'}
+                        {editingMetricIndex !== null ? 'Update Measure' : 'Add Measure'}
                       </Button>
                     </div>
                   </div>

@@ -12,22 +12,27 @@ import {
   Edit2,
   Save,
   X,
-  Plus
+  Plus,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { useDistrict } from '../../../hooks/useDistricts';
 import { useGoals } from '../../../hooks/useGoals';
 import { useMetrics } from '../../../hooks/useMetrics';
+import { GoalsService } from '../../../lib/services/goals.service';
 import type { Goal, HierarchicalGoal } from '../../../lib/types';
 
 export function AdminGoals() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { data: district } = useDistrict(slug!);
-  const { data: goals, isLoading: loading } = useGoals(district?.id!);
+  const { data: goals, isLoading: loading, refetch } = useGoals(district?.id!);
   const { data: metrics } = useMetrics(district?.id!);
   const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
   const [editingGoal, setEditingGoal] = useState<string | null>(null);
   const [overrideModal, setOverrideModal] = useState<Goal | null>(null);
+  const [deleteModal, setDeleteModal] = useState<Goal | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const toggleExpanded = (goalId: string) => {
     const newExpanded = new Set(expandedGoals);
@@ -37,6 +42,23 @@ export function AdminGoals() {
       newExpanded.add(goalId);
     }
     setExpandedGoals(newExpanded);
+  };
+
+  const handleDelete = async (goal: Goal) => {
+    if (!goal) return;
+
+    setIsDeleting(true);
+    try {
+      await GoalsService.delete(goal.id);
+      await refetch();
+      setDeleteModal(null);
+      alert('Objective deleted successfully');
+    } catch (error) {
+      console.error('Error deleting objective:', error);
+      alert('Failed to delete objective. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
   
   const getStatusIcon = (status?: string) => {
@@ -169,13 +191,23 @@ export function AdminGoals() {
           <td className="py-3 px-4">
             <div className="flex items-center space-x-2">
               {isObjective ? (
-                <button
-                  onClick={() => navigate(`/${slug}/admin/objectives/${goal.id}/edit`)}
-                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                  title="Edit Objective"
-                >
-                  Edit
-                </button>
+                <>
+                  <button
+                    onClick={() => navigate(`/${slug}/admin/objectives/${goal.id}/edit`)}
+                    className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center space-x-1"
+                    title="Edit Objective"
+                  >
+                    <Edit2 className="h-3 w-3" />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    onClick={() => setDeleteModal(goal)}
+                    className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                    title="Delete Objective"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </>
               ) : (
                 <button
                   onClick={() => setOverrideModal(goal)}
@@ -206,46 +238,142 @@ export function AdminGoals() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
               Strategic Objectives & Goals
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
               Manage your strategic objectives and their goals
             </p>
           </div>
           <button
             onClick={() => navigate(`/${slug}/admin/objectives/new`)}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base whitespace-nowrap"
           >
             <Plus className="h-4 w-4" />
-            <span>Create Strategic Objective</span>
+            <span className="hidden sm:inline">Create Strategic Objective</span>
+            <span className="sm:hidden">New Objective</span>
           </button>
         </div>
-        
-        {/* Goals Table */}
-        <div className="bg-card rounded-lg border border-border overflow-hidden">
+
+        {/* Goals Table - Desktop Only */}
+        <div className="hidden md:block bg-card rounded-lg border border-border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="text-left py-3 px-4 font-medium">Goal</th>
-                  <th className="text-left py-3 px-4 font-medium">Metrics</th>
+                  <th className="text-left py-3 px-4 font-medium">Measures</th>
                   <th className="text-left py-3 px-4 font-medium">Current Status</th>
                   <th className="text-left py-3 px-4 font-medium">Calculated</th>
                   <th className="text-left py-3 px-4 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {goals?.filter(g => g.level === 0).map(goal => 
+                {goals?.filter(g => g.level === 0).map(goal =>
                   renderGoalRow(goal as HierarchicalGoal)
                 )}
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* Goals Cards - Mobile Only */}
+        <div className="md:hidden space-y-3">
+          {goals?.filter(g => g.level === 0).map(goal => {
+            const goalMetrics = metrics?.filter(m => m.goal_id === goal.id) || [];
+            const hasChildren = goal.children && goal.children.length > 0;
+            const isExpanded = expandedGoals.has(goal.id);
+
+            return (
+              <div key={goal.id} className="bg-white rounded-lg border border-border">
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        {hasChildren && (
+                          <button
+                            onClick={() => toggleExpanded(goal.id)}
+                            className="p-1 hover:bg-muted rounded flex-shrink-0"
+                          >
+                            {isExpanded ?
+                              <ChevronDown className="h-4 w-4" /> :
+                              <ChevronRight className="h-4 w-4" />
+                            }
+                          </button>
+                        )}
+                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800">
+                          {goal.goal_number}
+                        </span>
+                      </div>
+                      <h3 className="font-semibold text-sm sm:text-base text-foreground line-clamp-2">
+                        {goal.title}
+                      </h3>
+                    </div>
+                    {getStatusIcon(goal.status)}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Status:</span>
+                      {getStatusBadge(goal.status)}
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Metrics:</span>
+                      <span className="font-medium">{goalMetrics.length || 0}</span>
+                    </div>
+
+                    {goal.overall_progress !== null && goal.overall_progress !== undefined && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Progress:</span>
+                        <span className="font-medium">{Math.round(goal.overall_progress)}%</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
+                    <button
+                      onClick={() => navigate(`/${slug}/admin/objectives/${goal.id}/edit`)}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-primary border border-primary rounded-md hover:bg-primary/10 transition-colors"
+                    >
+                      <Edit2 className="h-3 w-3" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      onClick={() => setOverrideModal(goal)}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground border border-border rounded-md hover:bg-muted/50 transition-colors"
+                    >
+                      <Target className="h-3 w-3" />
+                      <span>Status</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Child Goals */}
+                {hasChildren && isExpanded && (
+                  <div className="border-t border-border bg-muted/20">
+                    {goal.children?.map((child: any) => (
+                      <div key={child.id} className="p-3 border-b border-border last:border-b-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-medium text-muted-foreground">{child.goal_number}</span>
+                              {getStatusBadge(child.status)}
+                            </div>
+                            <p className="text-sm text-foreground line-clamp-2">{child.title}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
         
         {/* Status Override Modal */}
@@ -259,6 +387,103 @@ export function AdminGoals() {
               setOverrideModal(null);
             }}
           />
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                    <h2 className="text-xl font-bold text-foreground">Delete Objective</h2>
+                  </div>
+                  <button
+                    onClick={() => setDeleteModal(null)}
+                    className="p-1 hover:bg-muted rounded"
+                    disabled={isDeleting}
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-4 space-y-4">
+                {/* Danger Zone Warning */}
+                <div className="p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold text-red-900">Danger Zone</h3>
+                      <p className="text-sm text-red-800 mt-1">
+                        This action cannot be undone. This will permanently delete the objective and all associated data.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Objective Details */}
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">You are about to delete:</p>
+                  <div className="p-3 bg-muted/50 rounded border border-border">
+                    <p className="font-semibold text-foreground">
+                      {deleteModal.goal_number} {deleteModal.title}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Cascade Warning */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">This will also delete:</p>
+                  <ul className="text-sm text-muted-foreground space-y-1 pl-4">
+                    <li className="flex items-center space-x-2">
+                      <span className="w-1.5 h-1.5 bg-red-600 rounded-full"></span>
+                      <span>All child goals under this objective</span>
+                    </li>
+                    <li className="flex items-center space-x-2">
+                      <span className="w-1.5 h-1.5 bg-red-600 rounded-full"></span>
+                      <span>All metrics associated with this objective and its goals</span>
+                    </li>
+                    <li className="flex items-center space-x-2">
+                      <span className="w-1.5 h-1.5 bg-red-600 rounded-full"></span>
+                      <span>All historical data and progress tracking</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="px-6 py-4 border-t border-border flex items-center justify-end space-x-3">
+                <button
+                  onClick={() => setDeleteModal(null)}
+                  disabled={isDeleting}
+                  className="px-4 py-2 text-sm font-medium text-foreground bg-white border border-border rounded-md hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDelete(deleteModal)}
+                  disabled={isDeleting}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <span className="animate-spin">⏳</span>
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4" />
+                      <span>Delete Objective</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
     </div>
   );

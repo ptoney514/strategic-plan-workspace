@@ -81,8 +81,47 @@ export function ObjectiveBuilder() {
   const [previewMode, setPreviewMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{
+    objectiveTitle?: string;
+    objectiveDescription?: string;
+    goals?: { [key: number]: string };
+  }>({});
 
   const categories = [...new Set(AVAILABLE_COMPONENTS.map(c => c.category))];
+
+  // Real-time validation
+  const validateObjectiveTitle = (title: string) => {
+    if (!title.trim()) {
+      return 'Title is required';
+    }
+    if (title.trim().length < 3) {
+      return 'Title must be at least 3 characters';
+    }
+    if (title.trim().length > 200) {
+      return 'Title must be less than 200 characters';
+    }
+    return undefined;
+  };
+
+  const validateObjectiveDescription = (description: string) => {
+    if (description && description.length > 2000) {
+      return 'Description must be less than 2000 characters';
+    }
+    return undefined;
+  };
+
+  const validateGoalTitle = (title: string) => {
+    if (!title.trim()) {
+      return 'Goal title is required';
+    }
+    if (title.trim().length < 3) {
+      return 'Goal title must be at least 3 characters';
+    }
+    if (title.trim().length > 200) {
+      return 'Goal title must be less than 200 characters';
+    }
+    return undefined;
+  };
 
   // Load objective data in edit mode
   useEffect(() => {
@@ -181,6 +220,7 @@ export function ObjectiveBuilder() {
       unit: string;
     }>
   });
+  const [goalFormError, setGoalFormError] = useState<string | undefined>(undefined);
   const [selectedVisualization, setSelectedVisualization] = useState<string>('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -194,6 +234,7 @@ export function ObjectiveBuilder() {
       indicator_color: '#10b981',
       metrics: []
     });
+    setGoalFormError(undefined);
     setSelectedVisualization('');
     setShowGoalModal(true);
   };
@@ -289,15 +330,50 @@ export function ObjectiveBuilder() {
   };
 
   const handleSaveAndPublish = async () => {
+    // Validate district
     if (!district?.id) {
-      alert('District not found');
+      alert('Error: District not found. Please refresh and try again.');
       return;
     }
 
     // Validate required fields
     if (!builderState.objective.title?.trim()) {
-      alert('Please enter an objective title');
+      alert('Validation Error: Please enter an objective title');
       return;
+    }
+
+    // Validate title length
+    if (builderState.objective.title.trim().length < 3) {
+      alert('Validation Error: Objective title must be at least 3 characters long');
+      return;
+    }
+
+    if (builderState.objective.title.trim().length > 200) {
+      alert('Validation Error: Objective title must be less than 200 characters');
+      return;
+    }
+
+    // Validate description length if provided
+    if (builderState.objective.description && builderState.objective.description.length > 2000) {
+      alert('Validation Error: Description must be less than 2000 characters');
+      return;
+    }
+
+    // Validate goals
+    for (let i = 0; i < builderState.goals.length; i++) {
+      const goal = builderState.goals[i];
+      if (!goal.title?.trim()) {
+        alert(`Validation Error: Goal ${i + 1} is missing a title`);
+        return;
+      }
+      if (goal.title.trim().length < 3) {
+        alert(`Validation Error: Goal ${i + 1} title must be at least 3 characters long`);
+        return;
+      }
+      if (goal.title.trim().length > 200) {
+        alert(`Validation Error: Goal ${i + 1} title must be less than 200 characters`);
+        return;
+      }
     }
 
     setIsSaving(true);
@@ -306,14 +382,20 @@ export function ObjectiveBuilder() {
 
       const objectiveData: Partial<Goal> = {
         district_id: district.id,
-        title: builderState.objective.title,
-        description: builderState.objective.description,
+        title: builderState.objective.title.trim(),
+        description: builderState.objective.description?.trim() || null,
         level: 0,
         parent_id: null,
-        image_url: builderState.objective.image_url,
-        header_color: builderState.objective.header_color,
-        overall_progress: builderState.objective.overall_progress,
-        overall_progress_display_mode: builderState.objective.overall_progress_display_mode,
+        image_url: builderState.objective.image_url || null,
+        header_color: builderState.objective.header_color || null,
+        overall_progress: builderState.objective.overall_progress || 0,
+        overall_progress_display_mode: builderState.objective.overall_progress_display_mode || 'percentage',
+        owner_name: builderState.objective.owner_name || null,
+        department: builderState.objective.department || null,
+        start_date: builderState.objective.start_date || null,
+        end_date: builderState.objective.end_date || null,
+        priority: builderState.objective.priority || null,
+        executive_summary: builderState.objective.executive_summary || null,
       };
 
       if (isEditMode && objectiveId) {
@@ -336,10 +418,10 @@ export function ObjectiveBuilder() {
       for (const goal of builderState.goals) {
         const goalData: Partial<Goal> = {
           district_id: district.id,
-          title: goal.title!,
-          description: goal.description,
-          indicator_text: goal.indicator_text,
-          indicator_color: goal.indicator_color,
+          title: goal.title!.trim(),
+          description: goal.description?.trim() || null,
+          indicator_text: goal.indicator_text || null,
+          indicator_color: goal.indicator_color || null,
           level: 1,
           parent_id: savedObjective.id,
         };
@@ -351,7 +433,19 @@ export function ObjectiveBuilder() {
       navigate(`/${slug}/admin/goals`);
     } catch (error) {
       console.error('Error saving objective:', error);
-      alert('Failed to save objective. Please try again.');
+
+      // Provide more helpful error messages
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate')) {
+          alert('Error: An objective with this information already exists.');
+        } else if (error.message.includes('permission')) {
+          alert('Error: You do not have permission to save this objective.');
+        } else {
+          alert(`Error: ${error.message}`);
+        }
+      } else {
+        alert('Failed to save objective. Please check your connection and try again.');
+      }
     } finally {
       setIsSaving(false);
     }
@@ -389,6 +483,124 @@ export function ObjectiveBuilder() {
 
               {/* Content */}
               <div className="p-6">
+                {/* Title - Inline Editable */}
+                {builderState.visibleComponents.title && (
+                  <div className="mb-4">
+                    <label className="block text-xs font-medium text-muted-foreground mb-2">
+                      OBJECTIVE TITLE *
+                    </label>
+                    <input
+                      type="text"
+                      value={objective.title || ''}
+                      onChange={(e) => {
+                        const newTitle = e.target.value;
+                        setBuilderState(prev => ({
+                          ...prev,
+                          objective: { ...prev.objective, title: newTitle }
+                        }));
+                        // Validate and update errors
+                        const error = validateObjectiveTitle(newTitle);
+                        setValidationErrors(prev => ({
+                          ...prev,
+                          objectiveTitle: error
+                        }));
+                      }}
+                      placeholder="Enter strategic objective title..."
+                      className={`w-full text-2xl font-bold text-foreground bg-transparent border-0 border-b-2 ${
+                        validationErrors.objectiveTitle
+                          ? 'border-red-500 focus:border-red-500'
+                          : 'border-transparent hover:border-muted focus:border-primary'
+                      } focus:outline-none px-0 py-2 transition-colors`}
+                    />
+                    {validationErrors.objectiveTitle && (
+                      <p className="text-xs text-red-600 mt-1 flex items-center space-x-1">
+                        <AlertCircle className="h-3 w-3" />
+                        <span>{validationErrors.objectiveTitle}</span>
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {objective.title?.length || 0} / 200 characters
+                    </p>
+                  </div>
+                )}
+
+                {/* Description - Inline Editable */}
+                {builderState.visibleComponents.description && (
+                  <div className="mb-6">
+                    <label className="block text-xs font-medium text-muted-foreground mb-2">
+                      DESCRIPTION
+                    </label>
+                    <textarea
+                      value={objective.description || ''}
+                      onChange={(e) => {
+                        const newDescription = e.target.value;
+                        setBuilderState(prev => ({
+                          ...prev,
+                          objective: { ...prev.objective, description: newDescription }
+                        }));
+                        // Validate and update errors
+                        const error = validateObjectiveDescription(newDescription);
+                        setValidationErrors(prev => ({
+                          ...prev,
+                          objectiveDescription: error
+                        }));
+                      }}
+                      placeholder="Enter a detailed description of this strategic objective..."
+                      rows={3}
+                      className={`w-full text-sm text-muted-foreground bg-transparent border-2 ${
+                        validationErrors.objectiveDescription
+                          ? 'border-red-500 focus:border-red-500'
+                          : 'border-transparent hover:border-muted focus:border-primary'
+                      } focus:outline-none px-3 py-2 rounded-md resize-none transition-colors`}
+                    />
+                    {validationErrors.objectiveDescription && (
+                      <p className="text-xs text-red-600 mt-1 flex items-center space-x-1">
+                        <AlertCircle className="h-3 w-3" />
+                        <span>{validationErrors.objectiveDescription}</span>
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {objective.description?.length || 0} / 2000 characters
+                    </p>
+                  </div>
+                )}
+
+                {/* Progress Bar Preview */}
+                {builderState.visibleComponents.progressBar && (
+                  <div className="mb-6 p-4 bg-muted/20 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-xs font-medium text-muted-foreground">
+                        OVERALL PROGRESS (Preview)
+                      </label>
+                      <span className="text-xs text-muted-foreground">
+                        {Math.round(objective.overall_progress || 0)}%
+                      </span>
+                    </div>
+                    <OverallProgressBar
+                      goal={{
+                        ...objective,
+                        overall_progress: objective.overall_progress || 0,
+                        overall_progress_display_mode: objective.overall_progress_display_mode || 'percentage'
+                      } as Goal}
+                      showLabel={true}
+                    />
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={objective.overall_progress || 0}
+                      onChange={(e) => setBuilderState(prev => ({
+                        ...prev,
+                        objective: { ...prev.objective, overall_progress: parseInt(e.target.value) }
+                      }))}
+                      className="w-full mt-3"
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Adjust slider to preview different progress levels
+                    </p>
+                  </div>
+                )}
+
                 {/* Header Visual - Image or Color */}
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-3">
@@ -512,80 +724,6 @@ export function ObjectiveBuilder() {
                     </div>
                   )}
                 </div>
-
-                {/* Title - Inline Editable */}
-                {builderState.visibleComponents.title && (
-                  <div className="mb-4">
-                    <label className="block text-xs font-medium text-muted-foreground mb-2">
-                      OBJECTIVE TITLE
-                    </label>
-                    <input
-                      type="text"
-                      value={objective.title || ''}
-                      onChange={(e) => setBuilderState(prev => ({
-                        ...prev,
-                        objective: { ...prev.objective, title: e.target.value }
-                      }))}
-                      placeholder="Enter strategic objective title..."
-                      className="w-full text-2xl font-bold text-foreground bg-transparent border-0 border-b-2 border-transparent hover:border-muted focus:border-primary focus:outline-none px-0 py-2 transition-colors"
-                    />
-                  </div>
-                )}
-
-                {/* Description - Inline Editable */}
-                {builderState.visibleComponents.description && (
-                  <div className="mb-6">
-                    <label className="block text-xs font-medium text-muted-foreground mb-2">
-                      DESCRIPTION
-                    </label>
-                    <textarea
-                      value={objective.description || ''}
-                      onChange={(e) => setBuilderState(prev => ({
-                        ...prev,
-                        objective: { ...prev.objective, description: e.target.value }
-                      }))}
-                      placeholder="Enter a detailed description of this strategic objective..."
-                      rows={3}
-                      className="w-full text-sm text-muted-foreground bg-transparent border-2 border-transparent hover:border-muted focus:border-primary focus:outline-none px-3 py-2 rounded-md resize-none transition-colors"
-                    />
-                  </div>
-                )}
-
-                {/* Progress Bar Preview */}
-                {builderState.visibleComponents.progressBar && (
-                  <div className="mb-6 p-4 bg-muted/20 rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <label className="text-xs font-medium text-muted-foreground">
-                        OVERALL PROGRESS (Preview)
-                      </label>
-                      <span className="text-xs text-muted-foreground">
-                        {Math.round(objective.overall_progress || 0)}%
-                      </span>
-                    </div>
-                    <OverallProgressBar
-                      goal={{
-                        ...objective,
-                        overall_progress: objective.overall_progress || 0,
-                        overall_progress_display_mode: objective.overall_progress_display_mode || 'percentage'
-                      } as Goal}
-                      showLabel={true}
-                    />
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={objective.overall_progress || 0}
-                      onChange={(e) => setBuilderState(prev => ({
-                        ...prev,
-                        objective: { ...prev.objective, overall_progress: parseInt(e.target.value) }
-                      }))}
-                      className="w-full mt-3"
-                    />
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Adjust slider to preview different progress levels
-                    </p>
-                  </div>
-                )}
 
                 {/* Properties Grid */}
                 {(objective.owner_name || objective.department || objective.start_date || objective.priority) && (
@@ -882,19 +1020,10 @@ export function ObjectiveBuilder() {
 
         {/* Action Buttons */}
         <div className="p-4 border-t border-border space-y-2 bg-white">
-          <button
-            onClick={() => setPreviewMode(!previewMode)}
-            className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 border border-border hover:bg-muted/50 rounded-md transition-colors text-sm font-medium"
-          >
-            <Eye className="h-4 w-4" />
-            <span>Preview</span>
-          </button>
-          <button
-            className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors text-sm font-medium"
-          >
-            <Save className="h-4 w-4" />
-            <span>Publish</span>
-          </button>
+          <div className="text-xs text-muted-foreground text-center p-3 bg-muted/30 rounded-md">
+            <p className="font-medium mb-1">Ready to save?</p>
+            <p>Use the "Save & Publish" button at the top of the page</p>
+          </div>
         </div>
       </div>
     );
@@ -933,8 +1062,19 @@ export function ObjectiveBuilder() {
           </button>
           <button
             onClick={handleSaveAndPublish}
-            disabled={isSaving || !builderState.objective.title}
+            disabled={
+              isSaving ||
+              !builderState.objective.title ||
+              !!validationErrors.objectiveTitle ||
+              !!validationErrors.objectiveDescription ||
+              (validationErrors.goals && Object.keys(validationErrors.goals).length > 0)
+            }
             className="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            title={
+              validationErrors.objectiveTitle || validationErrors.objectiveDescription
+                ? 'Please fix validation errors before saving'
+                : ''
+            }
           >
             {isSaving ? (
               <>
@@ -953,20 +1093,20 @@ export function ObjectiveBuilder() {
 
       {/* Builder Interface */}
       <div className="bg-white border border-border rounded-lg overflow-hidden shadow-sm">
-        {/* 3 Column Layout */}
-        <div className="flex" style={{ height: 'calc(100vh - 280px)' }}>
-          {/* Left Sidebar - Component Library */}
-          <div className="w-80 border-r border-border">
+        {/* Mobile: Stacked Layout, Desktop: 3 Column Layout */}
+        <div className="flex flex-col lg:flex-row" style={{ minHeight: '500px', height: 'auto', maxHeight: 'calc(100vh - 280px)' }}>
+          {/* Left Sidebar - Component Library (Hidden on mobile, shown in tabs) */}
+          <div className="hidden lg:block lg:w-80 border-r border-border overflow-y-auto">
             {renderComponentLibrary()}
           </div>
 
           {/* Center - Visual Canvas */}
-          <div className="flex-1 bg-slate-50">
+          <div className="flex-1 bg-slate-50 overflow-y-auto order-1 lg:order-none">
             {renderCenterCanvas()}
           </div>
 
           {/* Right Sidebar - Active Components */}
-          <div className="w-80 border-l border-border">
+          <div className="lg:w-80 border-t lg:border-t-0 lg:border-l border-border overflow-y-auto order-2">
             {renderActiveComponents()}
           </div>
         </div>
@@ -1173,7 +1313,7 @@ export function ObjectiveBuilder() {
                     {editingGoalIndex !== null ? 'Edit Goal' : 'Create New Goal'}
                   </h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {goalWizardStep === 1 ? 'Step 1: Goal Information' : 'Step 2: Add Metrics (Optional)'}
+                    {goalWizardStep === 1 ? 'Step 1: Goal Information' : 'Step 2: Add Measures (Optional)'}
                   </p>
                 </div>
                 <button
@@ -1205,11 +1345,29 @@ export function ObjectiveBuilder() {
                   <input
                     type="text"
                     value={goalForm.title}
-                    onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })}
+                    onChange={(e) => {
+                      const newTitle = e.target.value;
+                      setGoalForm({ ...goalForm, title: newTitle });
+                      const error = validateGoalTitle(newTitle);
+                      setGoalFormError(error);
+                    }}
                     placeholder="Enter goal title..."
-                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                      goalFormError
+                        ? 'border-red-500 focus:ring-red-500'
+                        : 'border-border focus:ring-primary'
+                    }`}
                     autoFocus
                   />
+                  {goalFormError && (
+                    <p className="text-xs text-red-600 mt-1 flex items-center space-x-1">
+                      <AlertCircle className="h-3 w-3" />
+                      <span>{goalFormError}</span>
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {goalForm.title.length} / 200 characters
+                  </p>
                 </div>
 
                 {/* Description */}
@@ -1288,7 +1446,7 @@ export function ObjectiveBuilder() {
               ) : (
                 <div className="space-y-5">
                   <div>
-                    <h3 className="text-lg font-semibold mb-2">Add Metrics to "{goalForm.title}"</h3>
+                    <h3 className="text-lg font-semibold mb-2">Add Measures to "{goalForm.title}"</h3>
                     <p className="text-sm text-muted-foreground">
                       Choose how you want to visualize performance for this goal (optional)
                     </p>
@@ -1344,6 +1502,14 @@ export function ObjectiveBuilder() {
                             className="w-full px-3 py-2 border border-border rounded-md text-sm"
                           />
                         </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium mb-1">Measure</label>
+                          <textarea
+                            placeholder="What are you measuring? (e.g., 1-5 scale Student - overall belonging score)"
+                            className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                            rows={2}
+                          />
+                        </div>
                         <div>
                           <label className="block text-xs font-medium mb-1">Current Value</label>
                           <input
@@ -1381,7 +1547,7 @@ export function ObjectiveBuilder() {
 
                   <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                     <p className="text-xs text-blue-900">
-                      💡 {selectedVisualization ? 'Fill in metric details above, or skip to add later.' : 'Skip this step to add metrics later, or choose a visualization to add one now.'}
+                      💡 {selectedVisualization ? 'Fill in measure details above, or skip to add later.' : 'Skip this step to add measures later, or choose a visualization to add one now.'}
                     </p>
                   </div>
                 </div>
@@ -1414,10 +1580,11 @@ export function ObjectiveBuilder() {
                   {goalWizardStep === 1 ? (
                     <button
                       onClick={() => setGoalWizardStep(2)}
-                      disabled={!goalForm.title.trim()}
+                      disabled={!goalForm.title.trim() || !!goalFormError}
                       className="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={goalFormError ? 'Please fix validation errors' : ''}
                     >
-                      Next: Add Metrics
+                      Next: Add Measures
                     </button>
                   ) : (
                     <button

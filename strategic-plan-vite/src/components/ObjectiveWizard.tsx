@@ -625,7 +625,7 @@ export function ObjectiveWizard({ isOpen, onClose, onComplete, districtId, exist
             <div>
               <h3 className="text-lg font-semibold mb-2">How Will You Measure Success? <span className="text-sm font-normal text-muted-foreground">(Optional)</span></h3>
               <p className="text-sm text-muted-foreground">
-                Add key metrics to track progress for each goal. You can skip this step and add metrics later.
+                Add key measures to track progress for each goal. You can skip this step and add measures later.
               </p>
             </div>
             
@@ -698,7 +698,7 @@ export function ObjectiveWizard({ isOpen, onClose, onComplete, districtId, exist
                     className="ml-8 mt-2 text-sm text-primary hover:text-primary/80 flex items-center gap-1"
                   >
                     <Plus className="h-4 w-4" />
-                    Add Metric
+                    Add Measure
                   </button>
                 </div>
               ))}

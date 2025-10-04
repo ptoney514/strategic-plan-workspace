@@ -58,7 +58,7 @@ export function exportGoalsToCSV(goals: Goal[], district: District) {
 export function exportMetricsToCSV(metrics: Metric[], district: District) {
   const exportData = metrics.map(metric => ({
     'Metric Name': metric.metric_name || metric.name || '',
-    'Description': metric.description || '',
+    'Measure': metric.description || '',
     'Category': metric.metric_category || 'other',
     'Type': metric.metric_type || 'number',
     'Current Value': metric.current_value || 0,
@@ -149,7 +149,7 @@ export function exportMetricsWithTimeSeries(
         'Target Value': metric.target_value || '',
         'Actual Value': metric.current_value || '',
         'Status': metric.status || '',
-        'Notes': metric.description || '',
+        'Measure': metric.description || '',
       });
     }
   });
