@@ -2,7 +2,8 @@ import { getProgressQualitativeLabel, getProgressColor } from '../lib/types';
 
 interface PerformanceIndicatorProps {
   progress: number;
-  displayMode?: 'percentage' | 'qualitative' | 'score' | 'color-only' | 'hidden';
+  displayMode?: 'percentage' | 'qualitative' | 'score' | 'color-only' | 'hidden' | 'custom';
+  customValue?: string;
   showLabels?: boolean;
   onClick?: () => void;
 }
@@ -10,6 +11,7 @@ interface PerformanceIndicatorProps {
 export function PerformanceIndicator({
   progress,
   displayMode = 'qualitative',
+  customValue,
   showLabels = true,
   onClick
 }: PerformanceIndicatorProps) {
@@ -31,14 +33,6 @@ export function PerformanceIndicator({
       {/* Overall Progress Label */}
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-neutral-600">Overall Progress</span>
-        {displayMode === 'qualitative' && (
-          <span
-            className="text-sm font-bold"
-            style={{ color }}
-          >
-            {qualitativeLabel}
-          </span>
-        )}
         {displayMode === 'percentage' && (
           <span
             className="text-sm font-bold"
@@ -55,7 +49,32 @@ export function PerformanceIndicator({
             {((progress / 100) * 5).toFixed(1)}/5
           </span>
         )}
+        {displayMode === 'custom' && (
+          <span
+            className="text-sm font-bold"
+            style={{ color }}
+          >
+            {customValue || `${Math.round(progress)}%`}
+          </span>
+        )}
       </div>
+
+      {/* Labels above the bar for qualitative mode */}
+      {displayMode === 'qualitative' && showLabels && (
+        <div className="relative flex justify-between text-xs text-neutral-500 pb-1">
+          {labels.map((item) => (
+            <span
+              key={item.label}
+              className={progress >= item.threshold ? 'font-medium' : ''}
+              style={{
+                color: progress >= item.threshold ? color : undefined
+              }}
+            >
+              {item.label}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Progress Bar */}
       <div
@@ -64,8 +83,8 @@ export function PerformanceIndicator({
       >
         {/* Background track */}
         <div className="w-full bg-neutral-100 rounded-full h-3 overflow-hidden shadow-inner relative">
-          {/* Labels positioned along the bar */}
-          {showLabels && labels.map((item, idx) => (
+          {/* Labels positioned along the bar - only show dividers for qualitative */}
+          {displayMode === 'qualitative' && showLabels && labels.map((item, idx) => (
             <div
               key={item.label}
               className="absolute top-0 bottom-0 flex items-center"
@@ -91,8 +110,8 @@ export function PerformanceIndicator({
           </div>
         </div>
 
-        {/* Labels below the bar */}
-        {showLabels && (
+        {/* Labels below the bar - only for non-qualitative modes */}
+        {displayMode !== 'qualitative' && showLabels && (
           <div className="relative mt-1 flex justify-between text-xs text-neutral-500">
             {labels.map((item) => (
               <span

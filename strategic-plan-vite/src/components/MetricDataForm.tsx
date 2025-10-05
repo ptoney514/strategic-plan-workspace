@@ -1,5 +1,5 @@
-import React from 'react';
-import { Info, Plus, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Info, Plus, Trash2, GripVertical } from 'lucide-react';
 import { type VisualizationType, getDefaultConfig } from '../lib/metric-visualizations';
 
 interface MetricDataFormProps {
@@ -9,8 +9,30 @@ interface MetricDataFormProps {
 }
 
 export function MetricDataForm({ type, data, onChange }: MetricDataFormProps) {
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
   const updateField = (field: string, value: any) => {
     onChange({ ...data, [field]: value });
+  };
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === dropIndex) return;
+
+    const items = [...data.dataPoints];
+    const [removed] = items.splice(draggedIndex, 1);
+    items.splice(dropIndex, 0, removed);
+
+    updateField('dataPoints', items);
+    setDraggedIndex(null);
   };
 
   const renderFormFields = () => {
@@ -138,7 +160,25 @@ export function MetricDataForm({ type, data, onChange }: MetricDataFormProps) {
                   </div>
                 ) : (
                   (data.dataPoints || []).map((point: any, index: number) => (
-                    <div key={index} className="flex gap-2 items-center">
+                    <div
+                      key={index}
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDrop={(e) => handleDrop(e, index)}
+                      className={`flex gap-2 items-center p-2 rounded-md border transition-all ${
+                        draggedIndex === index
+                          ? 'opacity-50 border-primary bg-primary/5'
+                          : 'border-transparent hover:border-border hover:bg-muted/30'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded"
+                        title="Drag to reorder"
+                      >
+                        <GripVertical className="w-4 h-4 text-muted-foreground" />
+                      </button>
                       <span className="text-sm text-muted-foreground w-8">#{index + 1}</span>
                       <input
                         type="text"
@@ -242,7 +282,25 @@ export function MetricDataForm({ type, data, onChange }: MetricDataFormProps) {
                   </div>
                 ) : (
                   (data.dataPoints || []).map((point: any, index: number) => (
-                    <div key={index} className="flex gap-2 items-center">
+                    <div
+                      key={index}
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDrop={(e) => handleDrop(e, index)}
+                      className={`flex gap-2 items-center p-2 rounded-md border transition-all ${
+                        draggedIndex === index
+                          ? 'opacity-50 border-primary bg-primary/5'
+                          : 'border-transparent hover:border-border hover:bg-muted/30'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded"
+                        title="Drag to reorder"
+                      >
+                        <GripVertical className="w-4 h-4 text-muted-foreground" />
+                      </button>
                       <span className="text-sm text-muted-foreground w-8">#{index + 1}</span>
                       <input
                         type="text"
@@ -516,7 +574,25 @@ export function MetricDataForm({ type, data, onChange }: MetricDataFormProps) {
                   </div>
                 ) : (
                   (data.dataPoints || []).map((point: any, index: number) => (
-                    <div key={index} className="flex gap-2 items-center">
+                    <div
+                      key={index}
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDrop={(e) => handleDrop(e, index)}
+                      className={`flex gap-2 items-center p-2 rounded-md border transition-all ${
+                        draggedIndex === index
+                          ? 'opacity-50 border-primary bg-primary/5'
+                          : 'border-transparent hover:border-border hover:bg-muted/30'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded"
+                        title="Drag to reorder"
+                      >
+                        <GripVertical className="w-4 h-4 text-muted-foreground" />
+                      </button>
                       <span className="text-sm text-muted-foreground w-8">#{index + 1}</span>
                       <input
                         type="text"

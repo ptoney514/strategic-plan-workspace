@@ -54,7 +54,8 @@ export interface Goal {
   // Overall progress tracking
   overall_progress?: number;
   overall_progress_override?: number;
-  overall_progress_display_mode?: 'percentage' | 'qualitative' | 'score' | 'color-only' | 'hidden';
+  overall_progress_display_mode?: 'percentage' | 'qualitative' | 'score' | 'color-only' | 'hidden' | 'custom';
+  overall_progress_custom_value?: string;
   overall_progress_source?: 'calculated' | 'manual';
   overall_progress_last_calculated?: string;
   overall_progress_override_by?: string;

@@ -167,7 +167,10 @@ export function ObjectiveBuilder() {
     if (componentId === 'department') setPropertyValue(builderState.objective.department || '');
     if (componentId === 'dates') setPropertyValue(builderState.objective.start_date || '');
     if (componentId === 'priority') setPropertyValue(builderState.objective.priority || 'medium');
-    if (componentId === 'progress_display') setPropertyValue(builderState.objective.overall_progress_display_mode || 'percentage');
+    if (componentId === 'progress_display') {
+      setPropertyValue(builderState.objective.overall_progress_display_mode || 'percentage');
+      // Custom value is managed separately in the state, no need to set it in propertyValue
+    }
   };
 
   const [endDate, setEndDate] = useState<string>('');
@@ -186,7 +189,13 @@ export function ObjectiveBuilder() {
     if (editingProperty === 'owner') updates.owner_name = propertyValue;
     if (editingProperty === 'department') updates.department = propertyValue;
     if (editingProperty === 'priority') updates.priority = propertyValue as any;
-    if (editingProperty === 'progress_display') updates.overall_progress_display_mode = propertyValue as any;
+    if (editingProperty === 'progress_display') {
+      updates.overall_progress_display_mode = propertyValue as any;
+      // If switching away from custom mode, clear the custom value
+      if (propertyValue !== 'custom') {
+        updates.overall_progress_custom_value = undefined;
+      }
+    }
     if (editingProperty === 'dates') {
       updates.start_date = propertyValue;
       updates.end_date = endDate;
@@ -385,6 +394,7 @@ export function ObjectiveBuilder() {
         header_color: builderState.objective.header_color || null,
         overall_progress: builderState.objective.overall_progress || 0,
         overall_progress_display_mode: builderState.objective.overall_progress_display_mode || 'percentage',
+        overall_progress_custom_value: builderState.objective.overall_progress_custom_value || null,
         owner_name: builderState.objective.owner_name || null,
         department: builderState.objective.department || null,
         start_date: builderState.objective.start_date || null,
@@ -567,15 +577,28 @@ export function ObjectiveBuilder() {
                       <label className="text-xs font-medium text-muted-foreground">
                         OVERALL PROGRESS (Preview)
                       </label>
-                      <span className="text-xs text-muted-foreground">
-                        {Math.round(objective.overall_progress || 0)}%
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {objective.overall_progress_display_mode === 'custom' && objective.overall_progress_custom_value
+                            ? `Displays: "${objective.overall_progress_custom_value}" (Bar: ${Math.round(objective.overall_progress || 0)}%)`
+                            : `${Math.round(objective.overall_progress || 0)}%`
+                          }
+                        </span>
+                        <button
+                          onClick={() => addProperty('progress_display')}
+                          className="p-1 hover:bg-muted rounded transition-colors"
+                          title="Configure display mode"
+                        >
+                          <Edit2 className="h-3 w-3 text-muted-foreground" />
+                        </button>
+                      </div>
                     </div>
                     <OverallProgressBar
                       goal={{
                         ...objective,
                         overall_progress: objective.overall_progress || 0,
-                        overall_progress_display_mode: objective.overall_progress_display_mode || 'percentage'
+                        overall_progress_display_mode: objective.overall_progress_display_mode || 'percentage',
+                        overall_progress_custom_value: objective.overall_progress_custom_value
                       } as Goal}
                       showLabel={true}
                     />
@@ -591,7 +614,10 @@ export function ObjectiveBuilder() {
                       className="w-full mt-3"
                     />
                     <p className="text-xs text-muted-foreground mt-2">
-                      Adjust slider to preview different progress levels
+                      {objective.overall_progress_display_mode === 'custom'
+                        ? 'Slider controls the progress bar position and color (not the display value)'
+                        : 'Adjust slider to preview different progress levels'
+                      }
                     </p>
                   </div>
                 )}
@@ -1202,8 +1228,9 @@ export function ObjectiveBuilder() {
                   <p className="text-sm text-muted-foreground">Choose how progress will be displayed on this objective</p>
                   {[
                     { value: 'percentage', label: 'Percentage', description: 'Show as 75%' },
-                    { value: 'qualitative', label: 'Qualitative', description: 'Show as Excellent/Great/Good' },
+                    { value: 'qualitative', label: 'Qualitative', description: 'Show as Excellent/Great/Good/Below' },
                     { value: 'score', label: 'Score out of 5', description: 'Show as 3.75/5.00' },
+                    { value: 'custom', label: 'Custom Value', description: 'Show custom text or number (e.g., "3.71", "Proficient")' },
                     { value: 'color-only', label: 'Color Only', description: 'Just the progress bar color' },
                     { value: 'hidden', label: 'Hidden', description: 'Don\'t show progress' },
                   ].map((mode) => (
@@ -1227,6 +1254,30 @@ export function ObjectiveBuilder() {
                       </div>
                     </button>
                   ))}
+
+                  {/* Custom Value Input - Show when 'custom' mode is selected */}
+                  {propertyValue === 'custom' && (
+                    <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Custom Display Value *
+                        </label>
+                        <input
+                          type="text"
+                          value={builderState.objective.overall_progress_custom_value || ''}
+                          onChange={(e) => setBuilderState(prev => ({
+                            ...prev,
+                            objective: { ...prev.objective, overall_progress_custom_value: e.target.value }
+                          }))}
+                          placeholder='e.g., "3.71", "Proficient", "On Track"'
+                          className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          This value will be displayed instead of the percentage. The progress slider still controls the bar color and position.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : editingProperty === 'image_url' ? (
                 <div className="space-y-3">

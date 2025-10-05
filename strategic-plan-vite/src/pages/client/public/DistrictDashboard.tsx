@@ -388,6 +388,7 @@ export function DistrictDashboard() {
                           <PerformanceIndicator
                             progress={childProgress}
                             displayMode={child.overall_progress_display_mode || 'qualitative'}
+                            customValue={child.overall_progress_custom_value}
                             showLabels={true}
                             onClick={() => {
                               setExpandedGoalId(isExpanded ? null : child.id);
@@ -470,7 +471,8 @@ export function DistrictDashboard() {
                                           {/* Performance Indicator for Sub-goal */}
                                           <PerformanceIndicator
                                             progress={subGoalProgress}
-                                            displayMode="percentage"
+                                            displayMode={subGoal.overall_progress_display_mode || 'percentage'}
+                                            customValue={subGoal.overall_progress_custom_value}
                                             showLabels={false}
                                             onClick={() => {
                                               setExpandedSubGoalId(isSubExpanded ? null : subGoal.id);
