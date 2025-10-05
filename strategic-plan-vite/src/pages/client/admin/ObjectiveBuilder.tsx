@@ -47,6 +47,7 @@ interface BuilderState {
     cardColor: boolean;
     cardImage: boolean;
     progressBar: boolean;
+    visualBadge: boolean;
   };
   headerMode: 'color' | 'image';
 }
@@ -75,6 +76,7 @@ export function ObjectiveBuilder() {
       cardColor: true,
       cardImage: true,
       progressBar: true,
+      visualBadge: true,
     },
     headerMode: 'color',
   });
@@ -144,6 +146,8 @@ export function ObjectiveBuilder() {
                 description: !!objective.description,
                 cardImage: !!(objective.image_url || objective.header_color),
                 progressBar: objective.show_progress_bar !== false, // default to true if not set
+                visualBadge: !!(objective.indicator_text), // default to false if not set
+                cardColor: true,
               }
             }));
           }
@@ -399,6 +403,8 @@ export function ObjectiveBuilder() {
         image_url: builderState.objective.image_url || null,
         header_color: builderState.objective.header_color || null,
         show_progress_bar: builderState.visibleComponents.progressBar,
+        indicator_text: builderState.visibleComponents.visualBadge ? (builderState.objective.indicator_text?.trim() || null) : null,
+        indicator_color: builderState.visibleComponents.visualBadge ? (builderState.objective.indicator_color || '#10b981') : null,
         overall_progress: builderState.objective.overall_progress || 0,
         overall_progress_display_mode: builderState.objective.overall_progress_display_mode || 'percentage',
         overall_progress_custom_value: builderState.objective.overall_progress_custom_value || null,
@@ -626,6 +632,76 @@ export function ObjectiveBuilder() {
                         : 'Adjust slider to preview different progress levels'
                       }
                     </p>
+                  </div>
+                )}
+
+                {/* Visual Badge Editor */}
+                {builderState.visibleComponents.visualBadge && (
+                  <div className="mb-6 p-4 bg-muted/20 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-xs font-medium text-muted-foreground">
+                        VISUAL BADGE
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-3">
+                      {/* Badge Text */}
+                      <div>
+                        <label className="block text-xs font-medium text-muted-foreground mb-2">
+                          Badge Text
+                        </label>
+                        <input
+                          type="text"
+                          value={objective.indicator_text || ''}
+                          onChange={(e) => setBuilderState(prev => ({
+                            ...prev,
+                            objective: { ...prev.objective, indicator_text: e.target.value }
+                          }))}
+                          placeholder="e.g., Priority, Featured"
+                          maxLength={20}
+                          className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+
+                      {/* Badge Color */}
+                      <div>
+                        <label className="block text-xs font-medium text-muted-foreground mb-2">
+                          Badge Color
+                        </label>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="color"
+                            value={objective.indicator_color || '#10b981'}
+                            onChange={(e) => setBuilderState(prev => ({
+                              ...prev,
+                              objective: { ...prev.objective, indicator_color: e.target.value }
+                            }))}
+                            className="h-9 w-16 border border-border rounded cursor-pointer"
+                          />
+                          <div
+                            className="flex-1 h-9 rounded border border-border"
+                            style={{ backgroundColor: objective.indicator_color || '#10b981' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Preview Badge */}
+                    {objective.indicator_text && (
+                      <div className="p-3 bg-white rounded-md border border-border">
+                        <p className="text-xs text-muted-foreground mb-2">Preview:</p>
+                        <span
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium"
+                          style={{
+                            backgroundColor: objective.indicator_color || '#10b981',
+                            color: '#ffffff'
+                          }}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
+                          {objective.indicator_text}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -974,6 +1050,13 @@ export function ObjectiveBuilder() {
         value: 'Enabled',
         active: true,
         visible: visibleComponents.progressBar
+      },
+      {
+        id: 'visualBadge' as const,
+        label: 'Visual Badge',
+        value: objective.indicator_text || 'Not set',
+        active: !!objective.indicator_text,
+        visible: visibleComponents.visualBadge
       },
     ];
 

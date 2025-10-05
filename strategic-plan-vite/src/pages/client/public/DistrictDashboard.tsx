@@ -140,10 +140,18 @@ export function DistrictDashboard() {
                          index === 1 ? <BarChart3 className="h-5 w-5" /> :
                          <BookOpen className="h-5 w-5" />}
                       </div>
-                      <span className={`inline-flex items-center gap-1.5 rounded-full ${index === 0 ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200'} text-xs font-medium px-2.5 py-1`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${index === 0 ? 'bg-emerald-500' : 'bg-neutral-400'}`}></span>
-                        In Progress
-                      </span>
+                      {goal.indicator_text && (
+                        <span
+                          className="inline-flex items-center gap-1.5 rounded-full text-xs font-medium px-2.5 py-1"
+                          style={{
+                            backgroundColor: goal.indicator_color || '#10b981',
+                            color: '#ffffff'
+                          }}
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-white/80"></span>
+                          {goal.indicator_text}
+                        </span>
+                      )}
                     </div>
                     <h3 className="mt-4 text-xl md:text-2xl font-semibold tracking-tight text-neutral-900">
                       {goal.title}
