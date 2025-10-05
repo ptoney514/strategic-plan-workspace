@@ -1,21 +1,20 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { StatusManager } from '../../../components/StatusManager';
 import { MetricBuilderWizard } from '../../../components/MetricBuilderWizard';
+import { SimpleGoalEdit } from '../../../components/SimpleGoalEdit';
 import {
-  Target,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  Clock,
   ChevronDown,
   ChevronRight,
   Edit2,
-  Save,
   X,
-  Plus,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  BarChart3,
+  Plus,
+  CheckCircle,
+  AlertCircle,
+  XCircle,
+  Clock
 } from 'lucide-react';
 import { useDistrict } from '../../../hooks/useDistricts';
 import { useGoals } from '../../../hooks/useGoals';
@@ -32,7 +31,7 @@ export function AdminGoals() {
   const createMetricMutation = useCreateMetric();
   const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
   const [metricWizardGoal, setMetricWizardGoal] = useState<Goal | null>(null);
-  const [overrideModal, setOverrideModal] = useState<Goal | null>(null);
+  const [editGoalWizard, setEditGoalWizard] = useState<Goal | null>(null);
   const [deleteModal, setDeleteModal] = useState<Goal | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -128,11 +127,6 @@ export function AdminGoals() {
               )}
               <div className="flex-1">
                 <div className="flex items-center space-x-2">
-                  {isObjective && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-600 text-white">
-                      Strategic Objective
-                    </span>
-                  )}
                   <p className={`${isObjective ? 'font-bold text-lg' : 'font-medium'}`}>
                     {goal.goal_number} {goal.title}
                   </p>
@@ -145,78 +139,35 @@ export function AdminGoals() {
               </div>
             </div>
           </td>
-          
-          <td className="py-3 px-4">
-            <div className="space-y-1">
-              {avgProgress !== null && (
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium">
-                    {avgProgress.toFixed(1)}%
-                  </span>
-                  <div className="w-20 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-500 h-2 rounded-full"
-                      style={{ width: `${Math.min(100, avgProgress)}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                {metricsWithValues.length} of {goalMetrics.length} metrics
-              </p>
-            </div>
-          </td>
-          
+
           <td className="py-3 px-4">
             <div className="flex items-center space-x-2">
-              {getStatusIcon(goal.status)}
-              {getStatusBadge(goal.status)}
-            </div>
-            {goal.status_source === 'manual' && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Manual Override
-              </p>
-            )}
-          </td>
-          
-          <td className="py-3 px-4">
-            {goal.calculated_status && goal.calculated_status !== goal.status && (
-              <div className="space-y-1">
-                {getStatusBadge(goal.calculated_status)}
-                <p className="text-xs text-muted-foreground">
-                  System suggestion
-                </p>
-              </div>
-            )}
-          </td>
-          
-          <td className="py-3 px-4">
-            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => isObjective
+                  ? navigate(`/${slug}/admin/objectives/${goal.id}/edit`)
+                  : setEditGoalWizard(goal)
+                }
+                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                title="Edit Goal"
+              >
+                <Edit2 className="h-4 w-4" />
+              </button>
               {isObjective ? (
-                <>
-                  <button
-                    onClick={() => setMetricWizardGoal(goal)}
-                    className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center space-x-1"
-                    title="Add Measure"
-                  >
-                    <Plus className="h-3 w-3" />
-                    <span>Add Measure</span>
-                  </button>
-                  <button
-                    onClick={() => setDeleteModal(goal)}
-                    className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                    title="Delete Objective"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </>
+                <button
+                  onClick={() => setDeleteModal(goal)}
+                  className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                  title="Delete Objective"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               ) : (
                 <button
-                  onClick={() => setOverrideModal(goal)}
-                  className="p-1 hover:bg-muted rounded"
-                  title="Override Status"
+                  onClick={() => setMetricWizardGoal(goal)}
+                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center space-x-1"
+                  title="Add Measure"
                 >
-                  <Edit2 className="h-4 w-4" />
+                  <BarChart3 className="h-3 w-3" />
+                  <span>Add Measure</span>
                 </button>
               )}
             </div>
@@ -267,10 +218,7 @@ export function AdminGoals() {
             <table className="w-full">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="text-left py-3 px-4 font-medium">Goal</th>
-                  <th className="text-left py-3 px-4 font-medium">Measures</th>
-                  <th className="text-left py-3 px-4 font-medium">Current Status</th>
-                  <th className="text-left py-3 px-4 font-medium">Calculated</th>
+                  <th className="text-left py-3 px-4 font-medium">Strategic Objectives and Goals</th>
                   <th className="text-left py-3 px-4 font-medium">Actions</th>
                 </tr>
               </thead>
@@ -339,18 +287,18 @@ export function AdminGoals() {
 
                   <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
                     <button
-                      onClick={() => setMetricWizardGoal(goal)}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+                      onClick={() => navigate(`/${slug}/admin/objectives/${goal.id}/edit`)}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition-colors"
                     >
-                      <Plus className="h-3 w-3" />
-                      <span>Add Measure</span>
+                      <Edit2 className="h-3 w-3" />
+                      <span>Edit</span>
                     </button>
                     <button
-                      onClick={() => setOverrideModal(goal)}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground border border-border rounded-md hover:bg-muted/50 transition-colors"
+                      onClick={() => setDeleteModal(goal)}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-red-600 border border-red-600 rounded-md hover:bg-red-50 transition-colors"
                     >
-                      <Target className="h-3 w-3" />
-                      <span>Status</span>
+                      <Trash2 className="h-3 w-3" />
+                      <span>Delete</span>
                     </button>
                   </div>
                 </div>
@@ -377,19 +325,6 @@ export function AdminGoals() {
             );
           })}
         </div>
-        
-        {/* Status Override Modal */}
-        {overrideModal && (
-          <StatusManager
-            goal={overrideModal}
-            onClose={() => setOverrideModal(null)}
-            onSave={(status, reason) => {
-              // TODO: Implement save logic
-              console.log('Saving override:', status, reason);
-              setOverrideModal(null);
-            }}
-          />
-        )}
 
         {/* Delete Confirmation Modal */}
         {deleteModal && (
@@ -501,6 +436,17 @@ export function AdminGoals() {
             goalNumber={metricWizardGoal.goal_number || ''}
           />
         )}
+
+        {/* Simple Goal Edit */}
+        <SimpleGoalEdit
+          goal={editGoalWizard}
+          isOpen={!!editGoalWizard}
+          onClose={() => setEditGoalWizard(null)}
+          onSuccess={async () => {
+            await refetch();
+            setEditGoalWizard(null);
+          }}
+        />
     </div>
   );
 }

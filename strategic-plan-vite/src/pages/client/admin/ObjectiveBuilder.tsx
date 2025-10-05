@@ -25,9 +25,8 @@ import { useDistrict } from '../../../hooks/useDistricts';
 import { OverallProgressBar } from '../../../components/OverallProgressBar';
 import { DEFAULT_OBJECTIVE_IMAGES } from '../../../lib/default-images';
 import { GoalsService } from '../../../lib/services/goals.service';
-import type { Goal, TimeSeriesDataPoint, ChartType } from '../../../lib/types';
-import { ChartTypePicker } from '../../../components/ChartTypePicker';
-import { TimeSeriesDataEntry } from '../../../components/TimeSeriesDataEntry';
+import type { Goal } from '../../../lib/types';
+import { MetricBuilderWizard } from '../../../components/MetricBuilderWizard';
 
 interface ComponentItem {
   id: string;
@@ -208,39 +207,23 @@ export function ObjectiveBuilder() {
 
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [editingGoalIndex, setEditingGoalIndex] = useState<number | null>(null);
-  const [goalWizardStep, setGoalWizardStep] = useState<1 | 2>(1);
   const [goalForm, setGoalForm] = useState({
     title: '',
     description: '',
     indicator_text: '',
     indicator_color: '#10b981',
-    metrics: [] as Array<{
-      name: string;
-      visualization_type: string;
-      target_value?: number;
-      current_value?: number;
-      unit: string;
-    }>
+    metrics: [] as any[]
   });
   const [goalFormError, setGoalFormError] = useState<string | undefined>(undefined);
-  const [selectedVisualization, setSelectedVisualization] = useState<string>('');
 
-  // Measure form state
-  const [measureForm, setMeasureForm] = useState({
-    metric_name: '',
-    description: '',
-    current_value: '',
-    target_value: '',
-    unit: '%'
-  });
-  const [measureChartType, setMeasureChartType] = useState<ChartType | undefined>();
-  const [measureDataPoints, setMeasureDataPoints] = useState<TimeSeriesDataPoint[]>([]);
+  // Metric wizard state
+  const [showMetricWizard, setShowMetricWizard] = useState(false);
+  const [currentGoalForMetric, setCurrentGoalForMetric] = useState<{idx: number; id: string; goal_number: string} | null>(null);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const addGoal = () => {
     setEditingGoalIndex(null);
-    setGoalWizardStep(1);
     setGoalForm({
       title: '',
       description: '',
@@ -249,14 +232,12 @@ export function ObjectiveBuilder() {
       metrics: []
     });
     setGoalFormError(undefined);
-    setSelectedVisualization('');
     setShowGoalModal(true);
   };
 
   const editGoal = (index: number) => {
     const goal = builderState.goals[index];
     setEditingGoalIndex(index);
-    setGoalWizardStep(1);
     setGoalForm({
       title: goal.title || '',
       description: goal.description || '',
@@ -891,14 +872,30 @@ export function ObjectiveBuilder() {
                     </div>
                     <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-all">
                       <button
+                        onClick={() => {
+                          setCurrentGoalForMetric({
+                            idx,
+                            id: `temp-${idx}`,
+                            goal_number: goal.goal_number || `${idx + 1}`
+                          });
+                          setShowMetricWizard(true);
+                        }}
+                        className="flex-shrink-0 p-1 hover:bg-green-50 rounded"
+                        title="Add Measure"
+                      >
+                        <BarChart3 className="h-3.5 w-3.5 text-green-600" />
+                      </button>
+                      <button
                         onClick={() => editGoal(idx)}
                         className="flex-shrink-0 p-1 hover:bg-blue-50 rounded"
+                        title="Edit Goal"
                       >
                         <Edit2 className="h-3.5 w-3.5 text-blue-600" />
                       </button>
                       <button
                         onClick={() => removeGoal(idx)}
                         className="flex-shrink-0 p-1 hover:bg-red-50 rounded"
+                        title="Remove Goal"
                       >
                         <Trash2 className="h-3.5 w-3.5 text-red-600" />
                       </button>
@@ -1318,7 +1315,7 @@ export function ObjectiveBuilder() {
       {/* Add/Edit Goal Modal - Wizard */}
       {showGoalModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="p-6 border-b border-border">
               <div className="flex items-center justify-between">
@@ -1327,13 +1324,12 @@ export function ObjectiveBuilder() {
                     {editingGoalIndex !== null ? 'Edit Goal' : 'Create New Goal'}
                   </h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {goalWizardStep === 1 ? 'Step 1: Goal Information' : 'Step 2: Add Measures (Optional)'}
+                    Define the basic information for your goal
                   </p>
                 </div>
                 <button
                   onClick={() => {
                     setShowGoalModal(false);
-                    setGoalWizardStep(1);
                     setEditingGoalIndex(null);
                   }}
                   className="p-1 hover:bg-muted rounded"
@@ -1341,18 +1337,11 @@ export function ObjectiveBuilder() {
                   <X className="h-5 w-5" />
                 </button>
               </div>
-
-              {/* Step Indicator */}
-              <div className="flex items-center space-x-2 mt-4">
-                <div className={`flex-1 h-1 rounded-full ${goalWizardStep >= 1 ? 'bg-blue-600' : 'bg-gray-200'}`} />
-                <div className={`flex-1 h-1 rounded-full ${goalWizardStep >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`} />
-              </div>
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              {goalWizardStep === 1 ? (
-                <div className="space-y-5">
+              <div className="space-y-5">
                 {/* Title */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Goal Title *</label>
@@ -1456,157 +1445,21 @@ export function ObjectiveBuilder() {
                   )}
                 </div>
 
+                {/* Info about adding metrics */}
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <p className="text-xs text-blue-900">
+                    💡 Measures can be added after creating the goal
+                  </p>
                 </div>
-              ) : (
-                <div className="space-y-5">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Add Measures to "{goalForm.title}"</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Choose how you want to visualize performance for this goal (optional)
-                    </p>
-                  </div>
-
-                  {/* Visualization Type Selector */}
-                  <div className="grid grid-cols-3 gap-3">
-                    {/* Available Visualizations */}
-                    {[
-                      { id: 'percentage', icon: '%', label: 'Percentage', desc: 'Show progress as %', available: true },
-                      { id: 'number', icon: '#', label: 'Number/KPI', desc: 'Display key number', available: true },
-                      { id: 'bar', icon: '📊', label: 'Bar Chart', desc: 'Compare values', available: true },
-                      { id: 'line', icon: '📈', label: 'Line Chart', desc: 'Show trends', available: false },
-                      { id: 'donut', icon: '🍩', label: 'Donut Chart', desc: 'Proportions', available: false },
-                      { id: 'gauge', icon: '⏱️', label: 'Gauge', desc: 'Performance scale', available: false },
-                    ].map((viz) => (
-                      <button
-                        key={viz.id}
-                        onClick={() => {
-                          if (viz.available) {
-                            setSelectedVisualization(viz.id);
-                            // Map viz.id to ChartType
-                            const chartTypeMap: Record<string, ChartType> = {
-                              'bar': 'bar',
-                              'line': 'line',
-                              'percentage': 'line',
-                              'number': 'bar'
-                            };
-                            setMeasureChartType(chartTypeMap[viz.id] || 'bar');
-                          }
-                        }}
-                        disabled={!viz.available}
-                        className={`p-4 border-2 rounded-lg text-left transition-all ${
-                          selectedVisualization === viz.id
-                            ? 'border-blue-600 bg-blue-50'
-                            : viz.available
-                            ? 'border-border hover:border-blue-300'
-                            : 'border-border opacity-50 cursor-not-allowed'
-                        }`}
-                      >
-                        <div className="text-2xl mb-2">{viz.icon}</div>
-                        <div className="font-medium text-sm">{viz.label}</div>
-                        <div className="text-xs text-muted-foreground mt-1">{viz.desc}</div>
-                        {!viz.available && (
-                          <div className="mt-2">
-                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
-                              Coming Soon
-                            </span>
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Metric Data Input - Shows when visualization is selected */}
-                  {selectedVisualization && (
-                    <div className="border border-blue-200 rounded-lg p-4 bg-blue-50/50">
-                      <h4 className="font-semibold text-sm mb-3">Metric Details</h4>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="col-span-2">
-                          <label className="block text-xs font-medium mb-1">Metric Name *</label>
-                          <input
-                            type="text"
-                            value={measureForm.metric_name}
-                            onChange={(e) => setMeasureForm({ ...measureForm, metric_name: e.target.value })}
-                            placeholder="e.g., Student Belonging Score"
-                            className="w-full px-3 py-2 border border-border rounded-md text-sm"
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <label className="block text-xs font-medium mb-1">Measure</label>
-                          <textarea
-                            value={measureForm.description}
-                            onChange={(e) => setMeasureForm({ ...measureForm, description: e.target.value })}
-                            placeholder="Format: [Data Source] - [Scale/Type] - [Description] (e.g., Student Survey - 1-5 scale - Overall belonging score)"
-                            className="w-full px-3 py-2 border border-border rounded-md text-sm"
-                            rows={2}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium mb-1">Current Value</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={measureForm.current_value}
-                            onChange={(e) => setMeasureForm({ ...measureForm, current_value: e.target.value })}
-                            placeholder="0"
-                            className="w-full px-3 py-2 border border-border rounded-md text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium mb-1">Target Value</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={measureForm.target_value}
-                            onChange={(e) => setMeasureForm({ ...measureForm, target_value: e.target.value })}
-                            placeholder="100"
-                            className="w-full px-3 py-2 border border-border rounded-md text-sm"
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <label className="block text-xs font-medium mb-1">Unit</label>
-                          <input
-                            type="text"
-                            value={measureForm.unit}
-                            onChange={(e) => setMeasureForm({ ...measureForm, unit: e.target.value })}
-                            placeholder="%"
-                            className="w-full px-3 py-2 border border-border rounded-md text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Time-Series Data Entry */}
-                      <div className="mt-4 pt-4 border-t border-blue-200">
-                        <TimeSeriesDataEntry
-                          dataPoints={measureDataPoints}
-                          onChange={setMeasureDataPoints}
-                        />
-                      </div>
-
-                      <button
-                        onClick={() => setSelectedVisualization('')}
-                        className="mt-3 text-xs text-blue-600 hover:text-blue-700"
-                      >
-                        ← Change visualization type
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                    <p className="text-xs text-blue-900">
-                      💡 {selectedVisualization ? 'Fill in measure details above, or skip to add later.' : 'Skip this step to add measures later, or choose a visualization to add one now.'}
-                    </p>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
 
-            {/* Footer - Navigation */}
+            {/* Footer */}
             <div className="p-6 border-t border-border bg-muted/30">
               <div className="flex items-center justify-between">
                 <button
                   onClick={() => {
                     setShowGoalModal(false);
-                    setGoalWizardStep(1);
                     setEditingGoalIndex(null);
                   }}
                   className="px-4 py-2 text-sm border border-border hover:bg-muted rounded-md transition-colors"
@@ -1614,37 +1467,44 @@ export function ObjectiveBuilder() {
                   Cancel
                 </button>
 
-                <div className="flex items-center space-x-2">
-                  {goalWizardStep === 2 && (
-                    <button
-                      onClick={() => setGoalWizardStep(1)}
-                      className="px-4 py-2 text-sm border border-border hover:bg-muted rounded-md transition-colors"
-                    >
-                      Back
-                    </button>
-                  )}
-                  {goalWizardStep === 1 ? (
-                    <button
-                      onClick={() => setGoalWizardStep(2)}
-                      disabled={!goalForm.title.trim() || !!goalFormError}
-                      className="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={goalFormError ? 'Please fix validation errors' : ''}
-                    >
-                      Next: Add Measures
-                    </button>
-                  ) : (
-                    <button
-                      onClick={saveGoal}
-                      className="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors"
-                    >
-                      {editingGoalIndex !== null ? 'Update Goal' : 'Save Goal'}
-                    </button>
-                  )}
-                </div>
+                <button
+                  onClick={saveGoal}
+                  disabled={!goalForm.title.trim() || !!goalFormError}
+                  className="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={goalFormError ? 'Please fix validation errors' : ''}
+                >
+                  {editingGoalIndex !== null ? 'Update Goal' : 'Save Goal'}
+                </button>
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Metric Builder Wizard */}
+      {showMetricWizard && currentGoalForMetric && (
+        <MetricBuilderWizard
+          isOpen={showMetricWizard}
+          onClose={() => {
+            setShowMetricWizard(false);
+            setCurrentGoalForMetric(null);
+          }}
+          onSave={async (metricData) => {
+            // Add metric to the goal in builder state
+            setBuilderState(prev => ({
+              ...prev,
+              goals: prev.goals.map((g, i) =>
+                i === currentGoalForMetric.idx
+                  ? { ...g, metrics: [...(g.metrics || []), metricData] }
+                  : g
+              )
+            }));
+            setShowMetricWizard(false);
+            setCurrentGoalForMetric(null);
+          }}
+          goalId={currentGoalForMetric.id}
+          goalNumber={currentGoalForMetric.goal_number}
+        />
       )}
     </div>
   );
