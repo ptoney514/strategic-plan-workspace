@@ -138,7 +138,13 @@ export function ObjectiveBuilder() {
               ...prev,
               objective: objective,
               goals: children || [],
-              headerMode: objective.image_url ? 'image' : 'color'
+              headerMode: objective.image_url ? 'image' : 'color',
+              visibleComponents: {
+                title: !!objective.title,
+                description: !!objective.description,
+                cardImage: !!(objective.image_url || objective.header_color),
+                progressBar: objective.show_progress_bar !== false, // default to true if not set
+              }
             }));
           }
         })
@@ -392,6 +398,7 @@ export function ObjectiveBuilder() {
         parent_id: null,
         image_url: builderState.objective.image_url || null,
         header_color: builderState.objective.header_color || null,
+        show_progress_bar: builderState.visibleComponents.progressBar,
         overall_progress: builderState.objective.overall_progress || 0,
         overall_progress_display_mode: builderState.objective.overall_progress_display_mode || 'percentage',
         overall_progress_custom_value: builderState.objective.overall_progress_custom_value || null,

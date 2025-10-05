@@ -48,6 +48,7 @@ export interface Goal {
   indicator_color?: string;
   image_url?: string;
   header_color?: string;
+  show_progress_bar?: boolean;
   children?: Goal[];
   metrics?: Metric[];
 

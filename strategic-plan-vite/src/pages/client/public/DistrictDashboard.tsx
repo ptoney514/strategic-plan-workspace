@@ -98,7 +98,7 @@ export function DistrictDashboard() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {objectives.map((goal, index) => {
               const style = cardStyles[index % cardStyles.length];
               const subGoalsCount = goal.children?.length || 0;
@@ -112,8 +112,26 @@ export function DistrictDashboard() {
                     setSelectedGoal(goal);
                     setShowSlidePanel(true);
                   }}
-                  className="group relative rounded-2xl bg-white ring-1 ring-neutral-200 hover:ring-neutral-300 transition-all shadow-sm hover:shadow-md cursor-pointer"
+                  className="group relative rounded-2xl bg-white ring-1 ring-neutral-200 hover:ring-neutral-300 transition-all shadow-sm hover:shadow-md cursor-pointer overflow-hidden"
                 >
+                  {/* Header Visual - Image or Color */}
+                  {(goal.image_url || goal.header_color) && (
+                    <div className="h-32 w-full relative">
+                      {goal.image_url ? (
+                        <img
+                          src={goal.image_url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : goal.header_color ? (
+                        <div
+                          className="w-full h-full"
+                          style={{ backgroundColor: goal.header_color }}
+                        />
+                      ) : null}
+                    </div>
+                  )}
+
                   <div className="pointer-events-none absolute -top-6 -right-6 h-28 w-28 rounded-full bg-gradient-to-br from-emerald-400/30 via-sky-400/30 to-indigo-500/30 blur-2xl"></div>
                   <div className="p-5 md:p-6">
                     <div className="flex items-start justify-between">
@@ -133,41 +151,51 @@ export function DistrictDashboard() {
                     <p className="mt-3 text-neutral-600 text-sm md:text-base line-clamp-3">
                       {goal.description || 'Strategic initiatives focused on this objective'}
                     </p>
-                    <div className="mt-5 flex items-center gap-4 text-sm text-neutral-600">
-                      <div className="inline-flex items-center gap-1.5">
-                        <Target className="h-4 w-4 text-neutral-400" />
-                        <span>Goal overall progress</span>
-                      </div>
-                    </div>
 
-                    {/* Progress Bar */}
-                    <div className="mt-5">
-                      <div className="relative">
-                        <div className="w-full bg-secondary rounded-full h-3 overflow-hidden shadow-inner">
-                          <div
-                            className="h-full transition-all duration-700 ease-out relative"
-                            style={{
-                              width: `${Math.min(Math.max(progress, 0), 100)}%`,
-                              background: `linear-gradient(90deg, ${progressColor}, ${progressColor}dd)`,
-                              boxShadow: `0 0 8px ${progressColor}40`
-                            }}
-                          >
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-20" />
-                          </div>
+                    {/* Goal overall progress label - Only show if progress bar is enabled */}
+                    {goal.show_progress_bar !== false && (
+                      <div className="mt-5 flex items-center gap-4 text-sm text-neutral-600">
+                        <div className="inline-flex items-center gap-1.5">
+                          <Target className="h-4 w-4 text-neutral-400" />
+                          <span>Goal overall progress</span>
                         </div>
                       </div>
-                      <div className="mt-2 text-right">
-                        <span
-                          className="text-sm font-bold"
-                          style={{
-                            color: progressColor,
-                            textShadow: `0 1px 2px ${progressColor}20`
-                          }}
-                        >
-                          {Math.round(progress)}%
-                        </span>
+                    )}
+
+                    {/* Progress Bar - Only show if enabled */}
+                    {goal.show_progress_bar !== false && (
+                      <div className="mt-5">
+                        <div className="relative">
+                          <div className="w-full bg-secondary rounded-full h-3 overflow-hidden shadow-inner">
+                            <div
+                              className="h-full transition-all duration-700 ease-out relative"
+                              style={{
+                                width: `${Math.min(Math.max(progress, 0), 100)}%`,
+                                background: `linear-gradient(90deg, ${progressColor}, ${progressColor}dd)`,
+                                boxShadow: `0 0 8px ${progressColor}40`
+                              }}
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-20" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-right">
+                          <span
+                            className="text-sm font-bold"
+                            style={{
+                              color: progressColor,
+                              textShadow: `0 1px 2px ${progressColor}20`
+                            }}
+                          >
+                            {Math.round(progress)}%
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    )}
+                    {/* Spacer to maintain uniform card height when progress bar is hidden */}
+                    {goal.show_progress_bar === false && (
+                      <div className="mt-5 h-[84px]" aria-hidden="true" />
+                    )}
                   </div>
                   <div className="px-5 md:px-6 pb-5 md:pb-6">
                     <button className="inline-flex items-center gap-2 text-sm font-medium text-neutral-800 hover:text-neutral-900">
