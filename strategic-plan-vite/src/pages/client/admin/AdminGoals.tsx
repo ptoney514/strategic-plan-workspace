@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { StatusManager } from '../../../components/StatusManager';
-import { GoalEditWizard } from '../../../components/GoalEditWizard';
+import { MetricBuilderWizard } from '../../../components/MetricBuilderWizard';
 import {
   Target,
   AlertCircle,
@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useDistrict } from '../../../hooks/useDistricts';
 import { useGoals } from '../../../hooks/useGoals';
-import { useMetrics } from '../../../hooks/useMetrics';
+import { useMetrics, useCreateMetric } from '../../../hooks/useMetrics';
 import { GoalsService } from '../../../lib/services/goals.service';
 import type { Goal, HierarchicalGoal } from '../../../lib/types';
 
@@ -28,9 +28,10 @@ export function AdminGoals() {
   const navigate = useNavigate();
   const { data: district } = useDistrict(slug!);
   const { data: goals, isLoading: loading, refetch } = useGoals(district?.id!);
-  const { data: metrics } = useMetrics(district?.id!);
+  const { data: metrics, refetch: refetchMetrics } = useMetrics(district?.id!);
+  const createMetricMutation = useCreateMetric();
   const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
-  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [metricWizardGoal, setMetricWizardGoal] = useState<Goal | null>(null);
   const [overrideModal, setOverrideModal] = useState<Goal | null>(null);
   const [deleteModal, setDeleteModal] = useState<Goal | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -194,12 +195,12 @@ export function AdminGoals() {
               {isObjective ? (
                 <>
                   <button
-                    onClick={() => setEditingGoal(goal)}
+                    onClick={() => setMetricWizardGoal(goal)}
                     className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center space-x-1"
-                    title="Edit Objective"
+                    title="Add Measure"
                   >
-                    <Edit2 className="h-3 w-3" />
-                    <span>Edit</span>
+                    <Plus className="h-3 w-3" />
+                    <span>Add Measure</span>
                   </button>
                   <button
                     onClick={() => setDeleteModal(goal)}
@@ -338,11 +339,11 @@ export function AdminGoals() {
 
                   <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
                     <button
-                      onClick={() => setEditingGoal(goal)}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-primary border border-primary rounded-md hover:bg-primary/10 transition-colors"
+                      onClick={() => setMetricWizardGoal(goal)}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
                     >
-                      <Edit2 className="h-3 w-3" />
-                      <span>Edit</span>
+                      <Plus className="h-3 w-3" />
+                      <span>Add Measure</span>
                     </button>
                     <button
                       onClick={() => setOverrideModal(goal)}
@@ -487,16 +488,19 @@ export function AdminGoals() {
           </div>
         )}
 
-        {/* Edit Goal Wizard */}
-        <GoalEditWizard
-          goal={editingGoal}
-          isOpen={!!editingGoal}
-          onClose={() => setEditingGoal(null)}
-          onSuccess={() => {
-            refetch();
-            setEditingGoal(null);
-          }}
-        />
+        {/* Metric Builder Wizard */}
+        {metricWizardGoal && (
+          <MetricBuilderWizard
+            isOpen={!!metricWizardGoal}
+            onClose={() => setMetricWizardGoal(null)}
+            onSave={async (metricData) => {
+              await createMetricMutation.mutateAsync(metricData);
+              await refetchMetrics();
+            }}
+            goalId={metricWizardGoal.id}
+            goalNumber={metricWizardGoal.goal_number || ''}
+          />
+        )}
     </div>
   );
 }
