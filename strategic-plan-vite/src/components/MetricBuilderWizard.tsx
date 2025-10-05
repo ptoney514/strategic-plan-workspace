@@ -150,27 +150,28 @@ export function MetricBuilderWizard({
     try {
       const metric = {
         goal_id: goalId,
+        name: metricDetails.name,
         metric_name: metricDetails.name,
         description: metricDetails.description,
         visualization_type: selectedType,
-        visualization_config: metricData,
-        data_points: metricData.dataPoints || null,
+        visualization_config: metricData, // This JSONB field stores all the chart data including dataPoints
         chart_type: selectedType,
         current_value: metricData.currentValue || null,
         target_value: metricData.targetValue || null,
         unit: metricData.unit || metricData.yAxisLabel || '',
         frequency: 'yearly' as const,
         aggregation_method: 'latest' as const,
-        data_source: 'manual' as const,
-        metric_type: selectedType === 'percentage' ? 'percentage' : 'numeric' as const
+        data_source: 'survey' as const,
+        metric_type: selectedType === 'percentage' ? 'percent' : 'number' as const
       };
 
       await onSave(metric);
       handleReset();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create metric:', error);
-      alert('Failed to create metric. Please try again.');
+      const errorMessage = error?.message || error?.error_description || JSON.stringify(error);
+      alert(`Failed to create metric: ${errorMessage}\n\nPlease check the console for details.`);
     } finally {
       setIsSaving(false);
     }

@@ -25,8 +25,11 @@ import { useDistrict } from '../../../hooks/useDistricts';
 import { OverallProgressBar } from '../../../components/OverallProgressBar';
 import { DEFAULT_OBJECTIVE_IMAGES } from '../../../lib/default-images';
 import { GoalsService } from '../../../lib/services/goals.service';
-import type { Goal } from '../../../lib/types';
+import { MetricsService } from '../../../lib/services/metrics.service';
+import type { Goal, Metric } from '../../../lib/types';
 import { MetricBuilderWizard } from '../../../components/MetricBuilderWizard';
+import { GoalBuilder } from '../../../components/GoalBuilder';
+import { useUpdateMetric, useDeleteMetric } from '../../../hooks/useMetrics';
 
 interface ComponentItem {
   id: string;
@@ -134,7 +137,7 @@ export function ObjectiveBuilder() {
         GoalsService.getById(objectiveId),
         GoalsService.getChildren(objectiveId)
       ])
-        .then(([objective, children]) => {
+        .then(async ([objective, children]) => {
           if (objective) {
             setBuilderState(prev => ({
               ...prev,
@@ -150,6 +153,16 @@ export function ObjectiveBuilder() {
                 cardColor: true,
               }
             }));
+
+            // Fetch metrics for each child goal
+            if (children && children.length > 0) {
+              const metricsMap: Record<string, Metric[]> = {};
+              for (const child of children) {
+                const metrics = await MetricsService.getByGoal(child.id);
+                metricsMap[child.id] = metrics;
+              }
+              setGoalMetrics(metricsMap);
+            }
           }
         })
         .catch(error => {
@@ -238,6 +251,11 @@ export function ObjectiveBuilder() {
   // Metric wizard state
   const [showMetricWizard, setShowMetricWizard] = useState(false);
   const [currentGoalForMetric, setCurrentGoalForMetric] = useState<{idx: number; id: string; goal_number: string} | null>(null);
+  const [editingMetric, setEditingMetric] = useState<Metric | null>(null);
+  const [goalMetrics, setGoalMetrics] = useState<Record<string, Metric[]>>({});
+
+  const updateMetricMutation = useUpdateMetric();
+  const deleteMetricMutation = useDeleteMetric();
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -953,64 +971,136 @@ export function ObjectiveBuilder() {
                 </span>
               </div>
               <div className="space-y-1.5">
-                {builderState.goals.map((goal, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-3 bg-white border border-border rounded-md hover:border-primary/40 transition-colors group"
-                  >
-                    <div className="flex items-center space-x-2 flex-1 min-w-0">
-                      <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-medium text-foreground">
-                            Goal {goal.goal_number}
-                          </span>
-                          {goal.indicator_text && (
-                            <span
-                              className="text-xs px-2 py-0.5 rounded-full text-white"
-                              style={{ backgroundColor: goal.indicator_color || '#10b981' }}
-                            >
-                              {goal.indicator_text}
-                            </span>
-                          )}
+                {builderState.goals.map((goal, idx) => {
+                  const metrics = goal.id ? goalMetrics[goal.id] || [] : [];
+                  return (
+                    <div key={idx} className="border border-border rounded-md bg-white">
+                      {/* Goal Header */}
+                      <div className="flex items-center justify-between p-3 hover:bg-muted/20 transition-colors group">
+                        <div className="flex items-center space-x-2 flex-1 min-w-0">
+                          <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm font-medium text-foreground">
+                                Goal {goal.goal_number}
+                              </span>
+                              {goal.indicator_text && (
+                                <span
+                                  className="text-xs px-2 py-0.5 rounded-full text-white"
+                                  style={{ backgroundColor: goal.indicator_color || '#10b981' }}
+                                >
+                                  {goal.indicator_text}
+                                </span>
+                              )}
+                              {metrics.length > 0 && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                                  {metrics.length} {metrics.length === 1 ? 'metric' : 'metrics'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {goal.title}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {goal.title}
+                        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-all">
+                          <button
+                            onClick={() => {
+                              setCurrentGoalForMetric({
+                                idx,
+                                id: goal.id || `temp-${idx}`,
+                                goal_number: goal.goal_number || `${idx + 1}`
+                              });
+                              setEditingMetric(null);
+                              setShowMetricWizard(true);
+                            }}
+                            className="flex-shrink-0 p-1 hover:bg-green-50 rounded"
+                            title="Add Measure"
+                          >
+                            <BarChart3 className="h-3.5 w-3.5 text-green-600" />
+                          </button>
+                          <button
+                            onClick={() => editGoal(idx)}
+                            className="flex-shrink-0 p-1 hover:bg-blue-50 rounded"
+                            title="Edit Goal"
+                          >
+                            <Edit2 className="h-3.5 w-3.5 text-blue-600" />
+                          </button>
+                          <button
+                            onClick={() => removeGoal(idx)}
+                            className="flex-shrink-0 p-1 hover:bg-red-50 rounded"
+                            title="Remove Goal"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                          </button>
                         </div>
                       </div>
+
+                      {/* Metrics List */}
+                      {metrics.length > 0 && (
+                        <div className="border-t border-border bg-muted/10 px-3 py-2">
+                          <div className="space-y-1">
+                            {metrics.map((metric) => (
+                              <div
+                                key={metric.id}
+                                className="flex items-center justify-between p-2 bg-white rounded hover:bg-blue-50 transition-colors group/metric"
+                              >
+                                <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                  <BarChart3 className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                  <span className="text-xs font-medium truncate">{metric.metric_name || metric.name}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    ({metric.visualization_type?.replace('-', ' ')})
+                                  </span>
+                                </div>
+                                <div className="flex items-center space-x-1 opacity-0 group-hover/metric:opacity-100 transition-all">
+                                  <button
+                                    onClick={() => {
+                                      setEditingMetric(metric);
+                                      setCurrentGoalForMetric({
+                                        idx,
+                                        id: goal.id || `temp-${idx}`,
+                                        goal_number: goal.goal_number || `${idx + 1}`
+                                      });
+                                      setShowMetricWizard(true);
+                                    }}
+                                    className="p-1 hover:bg-blue-100 rounded"
+                                    title="Edit Metric"
+                                  >
+                                    <Edit2 className="h-3 w-3 text-blue-600" />
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      if (confirm(`Delete metric "${metric.metric_name || metric.name}"?`)) {
+                                        try {
+                                          await deleteMetricMutation.mutateAsync(metric.id);
+                                          // Refresh metrics for this goal
+                                          if (goal.id) {
+                                            const updatedMetrics = await MetricsService.getByGoal(goal.id);
+                                            setGoalMetrics(prev => ({
+                                              ...prev,
+                                              [goal.id!]: updatedMetrics
+                                            }));
+                                          }
+                                        } catch (error) {
+                                          console.error('Error deleting metric:', error);
+                                          alert('Failed to delete metric');
+                                        }
+                                      }
+                                    }}
+                                    className="p-1 hover:bg-red-100 rounded"
+                                    title="Delete Metric"
+                                  >
+                                    <Trash2 className="h-3 w-3 text-red-600" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-all">
-                      <button
-                        onClick={() => {
-                          setCurrentGoalForMetric({
-                            idx,
-                            id: `temp-${idx}`,
-                            goal_number: goal.goal_number || `${idx + 1}`
-                          });
-                          setShowMetricWizard(true);
-                        }}
-                        className="flex-shrink-0 p-1 hover:bg-green-50 rounded"
-                        title="Add Measure"
-                      >
-                        <BarChart3 className="h-3.5 w-3.5 text-green-600" />
-                      </button>
-                      <button
-                        onClick={() => editGoal(idx)}
-                        className="flex-shrink-0 p-1 hover:bg-blue-50 rounded"
-                        title="Edit Goal"
-                      >
-                        <Edit2 className="h-3.5 w-3.5 text-blue-600" />
-                      </button>
-                      <button
-                        onClick={() => removeGoal(idx)}
-                        className="flex-shrink-0 p-1 hover:bg-red-50 rounded"
-                        title="Remove Goal"
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-red-600" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1629,22 +1719,66 @@ export function ObjectiveBuilder() {
           onClose={() => {
             setShowMetricWizard(false);
             setCurrentGoalForMetric(null);
+            setEditingMetric(null);
           }}
           onSave={async (metricData) => {
-            // Add metric to the goal in builder state
-            setBuilderState(prev => ({
-              ...prev,
-              goals: prev.goals.map((g, i) =>
-                i === currentGoalForMetric.idx
-                  ? { ...g, metrics: [...(g.metrics || []), metricData] }
-                  : g
-              )
-            }));
-            setShowMetricWizard(false);
-            setCurrentGoalForMetric(null);
+            try {
+              if (editingMetric) {
+                // Update existing metric
+                await updateMetricMutation.mutateAsync({
+                  id: editingMetric.id,
+                  updates: metricData
+                });
+
+                // Refresh metrics for this goal
+                const goal = builderState.goals[currentGoalForMetric.idx];
+                if (goal.id) {
+                  const updatedMetrics = await MetricsService.getByGoal(goal.id);
+                  setGoalMetrics(prev => ({
+                    ...prev,
+                    [goal.id!]: updatedMetrics
+                  }));
+                }
+              } else {
+                // Create new metric (only works for saved goals)
+                const goal = builderState.goals[currentGoalForMetric.idx];
+                if (goal.id) {
+                  const newMetric = {
+                    ...metricData,
+                    goal_id: goal.id
+                  };
+                  await MetricsService.create(newMetric);
+
+                  // Refresh metrics for this goal
+                  const updatedMetrics = await MetricsService.getByGoal(goal.id);
+                  setGoalMetrics(prev => ({
+                    ...prev,
+                    [goal.id!]: updatedMetrics
+                  }));
+                } else {
+                  // For unsaved goals, just add to state (will be saved later)
+                  setBuilderState(prev => ({
+                    ...prev,
+                    goals: prev.goals.map((g, i) =>
+                      i === currentGoalForMetric.idx
+                        ? { ...g, metrics: [...(g.metrics || []), metricData] }
+                        : g
+                    )
+                  }));
+                }
+              }
+
+              setShowMetricWizard(false);
+              setCurrentGoalForMetric(null);
+              setEditingMetric(null);
+            } catch (error) {
+              console.error('Error saving metric:', error);
+              throw error; // Let the wizard handle the error display
+            }
           }}
           goalId={currentGoalForMetric.id}
           goalNumber={currentGoalForMetric.goal_number}
+          existingMetric={editingMetric || undefined}
         />
       )}
     </div>
