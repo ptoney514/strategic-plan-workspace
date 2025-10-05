@@ -433,6 +433,132 @@ export function MetricDataForm({ type, data, onChange }: MetricDataFormProps) {
           </div>
         );
 
+      case 'likert-scale':
+        return (
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 text-blue-600 mt-0.5" />
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium">Perfect for survey data!</p>
+                  <p>Track responses on rating scales like 1-5 scale or 1-7 scale over time.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Scale Min</label>
+                <input
+                  type="number"
+                  value={data.scaleMin || 1}
+                  onChange={(e) => updateField('scaleMin', parseInt(e.target.value))}
+                  className="w-full px-3 py-2 border border-border rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Scale Max</label>
+                <input
+                  type="number"
+                  value={data.scaleMax || 5}
+                  onChange={(e) => updateField('scaleMax', parseInt(e.target.value))}
+                  className="w-full px-3 py-2 border border-border rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Scale Label</label>
+                <input
+                  type="text"
+                  value={data.scaleLabel || ''}
+                  onChange={(e) => updateField('scaleLabel', e.target.value)}
+                  placeholder="e.g., (5 high)"
+                  className="w-full px-3 py-2 border border-border rounded-md"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Target Value (optional)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={data.targetValue || ''}
+                onChange={(e) => updateField('targetValue', e.target.value ? parseFloat(e.target.value) : undefined)}
+                placeholder="e.g., 4.0"
+                className="w-full px-3 py-2 border border-border rounded-md"
+              />
+              <p className="text-xs text-muted-foreground mt-1">The goal you're aiming for on this scale</p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <label className="block text-sm font-medium">Add Data Points Over Time</label>
+                  <p className="text-xs text-muted-foreground">Track your scale values across different periods</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newDataPoints = [...(data.dataPoints || []), { label: '', value: 0 }];
+                    updateField('dataPoints', newDataPoints);
+                  }}
+                  className="px-3 py-1.5 text-sm border border-border rounded-md hover:bg-muted flex items-center gap-1"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Point
+                </button>
+              </div>
+              <div className="space-y-2">
+                {(data.dataPoints || []).length === 0 ? (
+                  <div className="text-center py-6 bg-muted/50 rounded-lg border-2 border-dashed border-border">
+                    <p className="text-muted-foreground">No data points yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">Click "Add Point" to start tracking</p>
+                  </div>
+                ) : (
+                  (data.dataPoints || []).map((point: any, index: number) => (
+                    <div key={index} className="flex gap-2 items-center">
+                      <span className="text-sm text-muted-foreground w-8">#{index + 1}</span>
+                      <input
+                        type="text"
+                        placeholder="Period (e.g., 2023, Q1 2024)"
+                        value={point.label}
+                        onChange={(e) => {
+                          const newDataPoints = [...data.dataPoints];
+                          newDataPoints[index].label = e.target.value;
+                          updateField('dataPoints', newDataPoints);
+                        }}
+                        className="flex-1 px-3 py-2 border border-border rounded-md"
+                      />
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="Value"
+                        value={point.value}
+                        onChange={(e) => {
+                          const newDataPoints = [...data.dataPoints];
+                          newDataPoints[index].value = parseFloat(e.target.value) || 0;
+                          updateField('dataPoints', newDataPoints);
+                        }}
+                        className="w-32 px-3 py-2 border border-border rounded-md"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newDataPoints = data.dataPoints.filter((_: any, i: number) => i !== index);
+                          updateField('dataPoints', newDataPoints);
+                        }}
+                        className="p-2 hover:bg-red-50 rounded"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
       default:
         return (
           <div className="text-center py-8 text-muted-foreground">

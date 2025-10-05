@@ -243,6 +243,51 @@ export function MetricPreview({ type, data }: MetricPreviewProps) {
           </div>
         );
 
+      case 'likert-scale':
+        const likertData = data.dataPoints || [];
+        const average = likertData.length > 0
+          ? likertData.reduce((sum: number, point: any) => sum + point.value, 0) / likertData.length
+          : 0;
+
+        return (
+          <div className="bg-white rounded-lg border border-border p-6">
+            <h3 className="text-lg font-medium mb-2">
+              Likert Scale {data.scaleMin}-{data.scaleMax} {data.scaleLabel}
+            </h3>
+            {data.showAverage && likertData.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm text-muted-foreground">Average Score</p>
+                <p className="text-3xl font-bold">{average.toFixed(2)}</p>
+                {data.targetValue && (
+                  <p className="text-sm text-muted-foreground">Target: {data.targetValue}</p>
+                )}
+              </div>
+            )}
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={likertData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="label" />
+                  <YAxis domain={[data.scaleMin || 1, data.scaleMax || 5]} />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  {data.showTarget && data.targetValue && (
+                    <Line
+                      type="monotone"
+                      dataKey={() => data.targetValue}
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      dot={false}
+                      name="Target"
+                    />
+                  )}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        );
+
       default:
         return (
           <div className="bg-white rounded-lg border border-border p-6">

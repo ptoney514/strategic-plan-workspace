@@ -11,6 +11,7 @@ import {
   Activity,
   CheckCircle2,
   LineChart,
+  SlidersHorizontal,
   type LucideIcon
 } from 'lucide-react';
 
@@ -22,7 +23,8 @@ export type VisualizationType =
   | 'donut-chart'
   | 'gauge'
   | 'survey'
-  | 'status';
+  | 'status'
+  | 'likert-scale';
 
 export interface VisualizationOption {
   id: VisualizationType;
@@ -97,6 +99,14 @@ export const visualizationOptions: VisualizationOption[] = [
     icon: CheckCircle2,
     preview: '/previews/status.svg',
     dataFields: ['status', 'label', 'description', 'lastUpdated']
+  },
+  {
+    id: 'likert-scale',
+    name: 'Likert Scale',
+    description: 'Track survey responses on rating scales (1-5, 1-7, etc.)',
+    icon: SlidersHorizontal,
+    preview: '/previews/likert-scale.svg',
+    dataFields: ['scaleMin', 'scaleMax', 'dataPoints', 'scaleLabel', 'targetValue']
   }
 ];
 
@@ -193,6 +203,19 @@ export interface StatusConfig {
   showIcon?: boolean;
 }
 
+export interface LikertScaleConfig {
+  scaleMin: number;
+  scaleMax: number;
+  scaleLabel?: string;
+  dataPoints: Array<{
+    label: string;
+    value: number;
+  }>;
+  targetValue?: number;
+  showTarget?: boolean;
+  showAverage?: boolean;
+}
+
 export type MetricVisualizationConfig =
   | { type: 'percentage'; config: PercentageConfig }
   | { type: 'number'; config: NumberConfig }
@@ -201,7 +224,8 @@ export type MetricVisualizationConfig =
   | { type: 'donut-chart'; config: DonutChartConfig }
   | { type: 'gauge'; config: GaugeConfig }
   | { type: 'survey'; config: SurveyConfig }
-  | { type: 'status'; config: StatusConfig };
+  | { type: 'status'; config: StatusConfig }
+  | { type: 'likert-scale'; config: LikertScaleConfig };
 
 // Helper to get default config for a visualization type
 export function getDefaultConfig(type: VisualizationType): any {
@@ -275,6 +299,20 @@ export function getDefaultConfig(type: VisualizationType): any {
         status: 'on-target',
         label: 'Status',
         showIcon: true
+      };
+    case 'likert-scale':
+      return {
+        scaleMin: 1,
+        scaleMax: 5,
+        scaleLabel: '(5 high)',
+        dataPoints: [
+          { label: '2023', value: 0 },
+          { label: '2024', value: 0 },
+          { label: '2025', value: 0 }
+        ],
+        targetValue: 4,
+        showTarget: true,
+        showAverage: true
       };
     default:
       return {};

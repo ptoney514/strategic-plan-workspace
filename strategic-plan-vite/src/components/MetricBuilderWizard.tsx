@@ -121,6 +121,10 @@ export function MetricBuilderWizard({
         alert('Please add at least one data point');
         return;
       }
+      if (selectedType === 'likert-scale' && (!metricData.dataPoints || metricData.dataPoints.length === 0)) {
+        alert('Please add at least one data point');
+        return;
+      }
     }
 
     const nextIndex = currentStepIndex + 1;
@@ -270,6 +274,7 @@ export function MetricBuilderWizard({
                 {selectedType === 'donut-chart' && 'Add segments and their values for your donut chart'}
                 {selectedType === 'status' && 'Set the current status and add any relevant details'}
                 {selectedType === 'survey' && 'Configure your survey questions and response options'}
+                {selectedType === 'likert-scale' && 'Set your scale range and add data points over time'}
               </p>
             </div>
             <MetricDataForm
