@@ -154,7 +154,11 @@ export function MetricBuilderWizard({
         chart_type: selectedType,
         current_value: metricData.currentValue || null,
         target_value: metricData.targetValue || null,
-        unit: metricData.unit || metricData.yAxisLabel || null
+        unit: metricData.unit || metricData.yAxisLabel || '',
+        frequency: 'yearly' as const,
+        aggregation_method: 'latest' as const,
+        data_source: 'manual' as const,
+        metric_type: selectedType === 'percentage' ? 'percentage' : 'numeric' as const
       };
 
       await onSave(metric);
