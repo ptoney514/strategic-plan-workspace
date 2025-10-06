@@ -10,6 +10,14 @@ export function useMetrics(goalId: string) {
   });
 }
 
+export function useMetricsByDistrict(districtId: string) {
+  return useQuery({
+    queryKey: ['metrics', 'district', districtId],
+    queryFn: () => MetricsService.getByDistrict(districtId),
+    enabled: !!districtId,
+  });
+}
+
 export function useMetric(id: string) {
   return useQuery({
     queryKey: ['metrics', 'single', id],
@@ -20,11 +28,12 @@ export function useMetric(id: string) {
 
 export function useCreateMetric() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (metric: Partial<Metric>) => MetricsService.create(metric),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['metrics', data.goal_id] });
+      queryClient.invalidateQueries({ queryKey: ['metrics', 'district'] });
       queryClient.invalidateQueries({ queryKey: ['goals'] });
     },
   });
@@ -32,12 +41,13 @@ export function useCreateMetric() {
 
 export function useUpdateMetric() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Metric> }) => 
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Metric> }) =>
       MetricsService.update(id, updates),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['metrics', data.goal_id] });
+      queryClient.invalidateQueries({ queryKey: ['metrics', 'district'] });
       queryClient.invalidateQueries({ queryKey: ['metrics', 'single', data.id] });
       queryClient.invalidateQueries({ queryKey: ['goals'] });
     },

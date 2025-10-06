@@ -143,6 +143,12 @@ export function MetricBuilderWizard({
   };
 
   const handleSave = async () => {
+    // Prevent duplicate saves
+    if (isSaving) {
+      console.log('[MetricBuilderWizard] Save already in progress, ignoring duplicate request');
+      return;
+    }
+
     if (!selectedType || !metricDetails.name) {
       alert('Please complete all required fields');
       return;
@@ -168,11 +174,20 @@ export function MetricBuilderWizard({
       };
 
       console.log('[MetricBuilderWizard] Saving metric:', existingMetric ? 'UPDATE' : 'CREATE', metric);
+      console.log('[MetricBuilderWizard] Metric data structure:', {
+        visualization_type: metric.visualization_type,
+        dataPoints: metricData.dataPoints,
+        targetValue: metricData.targetValue
+      });
+
       await onSave(metric);
+
+      // Only reset and close if save was successful
       handleReset();
       onClose();
+      console.log('[MetricBuilderWizard] Metric saved successfully and wizard closed');
     } catch (error: any) {
-      console.error('Failed to save metric:', error);
+      console.error('[MetricBuilderWizard] Failed to save metric:', error);
       const errorMessage = error?.message || error?.error_description || JSON.stringify(error);
       alert(`Failed to save metric: ${errorMessage}\n\nPlease check the console for details.`);
     } finally {

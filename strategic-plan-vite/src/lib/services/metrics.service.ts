@@ -17,6 +17,27 @@ export class MetricsService {
     return data || [];
   }
 
+  static async getByDistrict(districtId: string): Promise<Metric[]> {
+    // Join through spb_goals to filter metrics by district
+    const { data, error } = await supabase
+      .from('spb_metrics')
+      .select(`
+        *,
+        spb_goals!inner(district_id)
+      `)
+      .eq('spb_goals.district_id', districtId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching metrics by district:', error);
+      throw error;
+    }
+
+    console.log(`[MetricsService] Loaded ${data?.length || 0} metrics for district ${districtId}`);
+    // Remove the joined goal data from the response
+    return (data || []).map(({ spb_goals, ...metric }) => metric as Metric);
+  }
+
   static async getById(id: string): Promise<Metric | null> {
     const { data, error } = await supabase
       .from('spb_metrics')

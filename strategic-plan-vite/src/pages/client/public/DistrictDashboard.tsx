@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDistrict } from '../../../hooks/useDistricts';
 import { useGoals } from '../../../hooks/useGoals';
-import { useMetrics } from '../../../hooks/useMetrics';
+import { useMetricsByDistrict } from '../../../hooks/useMetrics';
+import * as React from 'react';
 import {
   GraduationCap,
   Target,
@@ -17,6 +18,7 @@ import {
 import { SlidePanel } from '../../../components/SlidePanel';
 import { PerformanceIndicator } from '../../../components/PerformanceIndicator';
 import { AnnualProgressChart } from '../../../components/AnnualProgressChart';
+import { LikertScaleChart } from '../../../components/LikertScaleChart';
 import { GoalNarrativeDetail } from '../../../components/GoalNarrativeDetail';
 import type { Goal, TimeSeriesDataPoint } from '../../../lib/types';
 import { getProgressColor } from '../../../lib/types';
@@ -25,11 +27,32 @@ export function DistrictDashboard() {
   const { slug } = useParams<{ slug: string }>();
   const { data: district, isLoading: districtLoading } = useDistrict(slug!);
   const { data: goals, isLoading: goalsLoading } = useGoals(district?.id || '');
-  const { data: metrics, isLoading: metricsLoading } = useMetrics(district?.id || '');
+  const { data: metrics, isLoading: metricsLoading } = useMetricsByDistrict(district?.id || '');
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [showSlidePanel, setShowSlidePanel] = useState(false);
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
   const [expandedSubGoalId, setExpandedSubGoalId] = useState<string | null>(null);
+
+  // Debug: Log all metrics when they load
+  React.useEffect(() => {
+    if (metrics && metrics.length > 0) {
+      console.log('[DistrictDashboard] ========== ALL METRICS LOADED ==========');
+      console.log('[DistrictDashboard] Total metrics:', metrics.length);
+      metrics.forEach((m, idx) => {
+        console.log(`[DistrictDashboard] Metric ${idx + 1}:`, {
+          id: m.id,
+          name: m.metric_name,
+          goal_id: m.goal_id,
+          visualization_type: m.visualization_type,
+          has_config: !!m.visualization_config,
+          has_dataPoints: !!m.visualization_config?.dataPoints
+        });
+      });
+      console.log('[DistrictDashboard] ==========================================');
+    } else if (metrics) {
+      console.log('[DistrictDashboard] No metrics found in database');
+    }
+  }, [metrics]);
 
   const isLoading = districtLoading || goalsLoading || metricsLoading;
 
@@ -392,6 +415,14 @@ export function DistrictDashboard() {
                     const goalMetrics = metrics?.filter(m => m.goal_id === child.id) || [];
                     const primaryMetric = goalMetrics.find(m => m.is_primary) || goalMetrics[0];
 
+                    // Debug logging
+                    if (primaryMetric) {
+                      console.log(`[DistrictDashboard] Goal ${child.goal_number} - ${child.title}`);
+                      console.log('[DistrictDashboard] Primary metric:', primaryMetric.metric_name);
+                      console.log('[DistrictDashboard] Visualization type:', primaryMetric.visualization_type);
+                      console.log('[DistrictDashboard] Visualization config:', primaryMetric.visualization_config);
+                    }
+
                     // Convert metric visualization_config.dataPoints to chart data format
                     const dataPoints = primaryMetric?.visualization_config?.dataPoints ||
                                      primaryMetric?.data_points;
@@ -403,6 +434,12 @@ export function DistrictDashboard() {
                         target: Number(dp.target || primaryMetric?.target_value) || undefined
                       })).filter(d => d.year) // Only include entries with a year/date
                       : null;
+
+                    // More debug logging
+                    if (dataPoints) {
+                      console.log('[DistrictDashboard] Raw data points:', dataPoints);
+                      console.log('[DistrictDashboard] Transformed chart data:', chartData);
+                    }
 
                     const mockNarrative = index === 1 ? {
                       summary: "The Department of Education ranks schools based on State testing of Needs Improvement, Good, Great, and Excellent. The district has received a marking of Great the last three years. This past year, the district missed excellent, by .06 overall.",
@@ -459,53 +496,41 @@ export function DistrictDashboard() {
                               displayMode={child.overall_progress_display_mode || 'qualitative'}
                               customValue={child.overall_progress_custom_value}
                               showLabels={true}
-                              onClick={() => {
-                                setExpandedGoalId(isExpanded ? null : child.id);
-                              }}
                             />
                           )}
                         </div>
 
-                        {/* Expanded Detail Section */}
-                        {isExpanded && (
-                          <div className="border-t border-neutral-200 p-5 bg-neutral-50 animate-in slide-in-from-top duration-300">
-                            <div className="space-y-4">
-                              {/* Primary metrics/charts for this goal */}
-                              {primaryMetric && (chartData && chartData.length > 0) ? (
-                                primaryMetric.visualization_type === 'likert-scale' ? (
-                                  <div className="bg-white rounded-lg border border-neutral-200 p-5">
-                                    <h4 className="font-semibold text-neutral-900 mb-3">
-                                      {primaryMetric.metric_name || "Survey Results"}
-                                    </h4>
-                                    {primaryMetric.description && (
-                                      <p className="text-sm text-neutral-600 mb-4">{primaryMetric.description}</p>
-                                    )}
-                                    <AnnualProgressChart
-                                      data={chartData}
-                                      title=""
-                                      description=""
-                                      unit=""
-                                    />
-                                  </div>
-                                ) : (
-                                  <AnnualProgressChart
-                                    data={chartData}
-                                    title={primaryMetric?.metric_name || "Annual Progress"}
-                                    description={primaryMetric?.description || "Year-over-year progress tracking"}
-                                    unit={primaryMetric?.unit || ""}
-                                  />
-                                )
-                              ) : mockNarrative ? (
-                                <GoalNarrativeDetail
-                                  title="Academic Performance Details"
-                                  summary={mockNarrative.summary}
-                                  highlights={mockNarrative.highlights}
-                                  links={mockNarrative.links}
-                                  dataSource={mockNarrative.dataSource}
-                                />
-                              ) : null}
+                        {/* Metric Visualization - Always show if metrics exist */}
+                        {primaryMetric && (chartData && chartData.length > 0) && (
+                          <div className="border-t border-neutral-200 p-5 bg-neutral-50">
+                            {primaryMetric.visualization_type === 'likert-scale' ? (
+                              <LikertScaleChart
+                                data={chartData}
+                                title={primaryMetric.metric_name || "Survey Results"}
+                                description={primaryMetric.description}
+                                scaleMin={primaryMetric.visualization_config?.scaleMin || 1}
+                                scaleMax={primaryMetric.visualization_config?.scaleMax || 5}
+                                scaleLabel={primaryMetric.visualization_config?.scaleLabel || '(5 high)'}
+                                targetValue={primaryMetric.target_value || primaryMetric.visualization_config?.targetValue}
+                                showAverage={true}
+                              />
+                            ) : (
+                              <AnnualProgressChart
+                                data={chartData}
+                                title={primaryMetric?.metric_name || "Annual Progress"}
+                                description={primaryMetric?.description || "Year-over-year progress tracking"}
+                                unit={primaryMetric?.unit || ""}
+                              />
+                            )}
 
-                              {/* Level 2 Sub-goals (e.g., 1.1.1, 1.1.2) */}
+                          </div>
+                        )}
+
+                        {/* Level 2 Sub-goals (e.g., 1.1.1, 1.1.2) - Always show if they exist */}
+                        {child.children && child.children.length > 0 && (
+                          <div className="border-t border-neutral-200 p-5 bg-neutral-50">
+                            <div className="space-y-4">
+                              {/* Sub-goals section */}
                               {child.children && child.children.length > 0 && (
                                 <div className="space-y-3 pt-4">
                                   <h5 className="text-sm font-semibold text-neutral-700">Sub-Goals</h5>
@@ -583,13 +608,6 @@ export function DistrictDashboard() {
                                       </div>
                                     );
                                   })}
-                                </div>
-                              )}
-
-                              {!chartData && !mockNarrative && (!child.children || child.children.length === 0) && (
-                                <div className="text-center py-8 text-neutral-500">
-                                  <p className="text-sm">No metrics data available yet</p>
-                                  <p className="text-xs mt-1">Metrics will appear here once data is added</p>
                                 </div>
                               )}
                             </div>
