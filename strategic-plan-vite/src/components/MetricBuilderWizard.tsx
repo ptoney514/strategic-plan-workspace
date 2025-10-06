@@ -154,6 +154,7 @@ export function MetricBuilderWizard({
       return;
     }
 
+    // Set saving state immediately to prevent race condition
     setIsSaving(true);
     try {
       const metric = {

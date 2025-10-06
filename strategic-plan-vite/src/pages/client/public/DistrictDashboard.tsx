@@ -1,9 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDistrict } from '../../../hooks/useDistricts';
 import { useGoals } from '../../../hooks/useGoals';
 import { useMetricsByDistrict } from '../../../hooks/useMetrics';
-import * as React from 'react';
 import {
   GraduationCap,
   Target,
@@ -33,24 +32,10 @@ export function DistrictDashboard() {
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
   const [expandedSubGoalId, setExpandedSubGoalId] = useState<string | null>(null);
 
-  // Debug: Log all metrics when they load
-  React.useEffect(() => {
-    if (metrics && metrics.length > 0) {
-      console.log('[DistrictDashboard] ========== ALL METRICS LOADED ==========');
-      console.log('[DistrictDashboard] Total metrics:', metrics.length);
-      metrics.forEach((m, idx) => {
-        console.log(`[DistrictDashboard] Metric ${idx + 1}:`, {
-          id: m.id,
-          name: m.metric_name,
-          goal_id: m.goal_id,
-          visualization_type: m.visualization_type,
-          has_config: !!m.visualization_config,
-          has_dataPoints: !!m.visualization_config?.dataPoints
-        });
-      });
-      console.log('[DistrictDashboard] ==========================================');
-    } else if (metrics) {
-      console.log('[DistrictDashboard] No metrics found in database');
+  // Debug logging (development only)
+  useEffect(() => {
+    if (import.meta.env.DEV && metrics) {
+      console.log('[DistrictDashboard] Loaded metrics:', metrics.length);
     }
   }, [metrics]);
 
@@ -415,14 +400,6 @@ export function DistrictDashboard() {
                     const goalMetrics = metrics?.filter(m => m.goal_id === child.id) || [];
                     const primaryMetric = goalMetrics.find(m => m.is_primary) || goalMetrics[0];
 
-                    // Debug logging
-                    if (primaryMetric) {
-                      console.log(`[DistrictDashboard] Goal ${child.goal_number} - ${child.title}`);
-                      console.log('[DistrictDashboard] Primary metric:', primaryMetric.metric_name);
-                      console.log('[DistrictDashboard] Visualization type:', primaryMetric.visualization_type);
-                      console.log('[DistrictDashboard] Visualization config:', primaryMetric.visualization_config);
-                    }
-
                     // Convert metric visualization_config.dataPoints to chart data format
                     const dataPoints = primaryMetric?.visualization_config?.dataPoints ||
                                      primaryMetric?.data_points;
@@ -434,12 +411,6 @@ export function DistrictDashboard() {
                         target: Number(dp.target || primaryMetric?.target_value) || undefined
                       })).filter(d => d.year) // Only include entries with a year/date
                       : null;
-
-                    // More debug logging
-                    if (dataPoints) {
-                      console.log('[DistrictDashboard] Raw data points:', dataPoints);
-                      console.log('[DistrictDashboard] Transformed chart data:', chartData);
-                    }
 
                     const mockNarrative = index === 1 ? {
                       summary: "The Department of Education ranks schools based on State testing of Needs Improvement, Good, Great, and Excellent. The district has received a marking of Great the last three years. This past year, the district missed excellent, by .06 overall.",
