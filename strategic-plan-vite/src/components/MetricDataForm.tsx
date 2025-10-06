@@ -192,12 +192,22 @@ export function MetricDataForm({ type, data, onChange }: MetricDataFormProps) {
                         className="flex-1 px-3 py-2 border border-border rounded-md"
                       />
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         placeholder="Value"
                         value={point.value}
                         onChange={(e) => {
                           const newPoints = [...data.dataPoints];
-                          newPoints[index].value = parseFloat(e.target.value) || 0;
+                          const val = e.target.value;
+                          if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                            newPoints[index].value = val;
+                            updateField('dataPoints', newPoints);
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const newPoints = [...data.dataPoints];
+                          const val = e.target.value;
+                          newPoints[index].value = val === '' ? 0 : parseFloat(val) || 0;
                           updateField('dataPoints', newPoints);
                         }}
                         className="w-32 px-3 py-2 border border-border rounded-md"
@@ -314,12 +324,22 @@ export function MetricDataForm({ type, data, onChange }: MetricDataFormProps) {
                         className="flex-1 px-3 py-2 border border-border rounded-md"
                       />
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         placeholder="Value"
                         value={point.y}
                         onChange={(e) => {
                           const newData = [...data.dataPoints];
-                          newData[index].y = parseFloat(e.target.value) || 0;
+                          const val = e.target.value;
+                          if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                            newData[index].y = val;
+                            updateField('dataPoints', newData);
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const newData = [...data.dataPoints];
+                          const val = e.target.value;
+                          newData[index].y = val === '' ? 0 : parseFloat(val) || 0;
                           updateField('dataPoints', newData);
                         }}
                         className="w-32 px-3 py-2 border border-border rounded-md"
@@ -420,12 +440,22 @@ export function MetricDataForm({ type, data, onChange }: MetricDataFormProps) {
                         className="flex-1 px-3 py-2 border border-border rounded-md"
                       />
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         placeholder="Value"
                         value={category.value}
                         onChange={(e) => {
                           const newCategories = [...data.categories];
-                          newCategories[index].value = parseFloat(e.target.value) || 0;
+                          const val = e.target.value;
+                          if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                            newCategories[index].value = val;
+                            updateField('categories', newCategories);
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const newCategories = [...data.categories];
+                          const val = e.target.value;
+                          newCategories[index].value = val === '' ? 0 : parseFloat(val) || 0;
                           updateField('categories', newCategories);
                         }}
                         className="w-32 px-3 py-2 border border-border rounded-md"
@@ -606,13 +636,25 @@ export function MetricDataForm({ type, data, onChange }: MetricDataFormProps) {
                         className="flex-1 px-3 py-2 border border-border rounded-md"
                       />
                       <input
-                        type="number"
-                        step="0.1"
+                        type="text"
+                        inputMode="decimal"
                         placeholder="Value"
                         value={point.value}
                         onChange={(e) => {
                           const newDataPoints = [...data.dataPoints];
-                          newDataPoints[index].value = parseFloat(e.target.value) || 0;
+                          const val = e.target.value;
+                          // Allow empty, numbers, and decimals
+                          if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                            // Store the raw value to preserve decimal point while typing
+                            newDataPoints[index].value = val;
+                            updateField('dataPoints', newDataPoints);
+                          }
+                        }}
+                        onBlur={(e) => {
+                          // Convert to number when focus leaves the field
+                          const newDataPoints = [...data.dataPoints];
+                          const val = e.target.value;
+                          newDataPoints[index].value = val === '' ? 0 : parseFloat(val) || 0;
                           updateField('dataPoints', newDataPoints);
                         }}
                         className="w-32 px-3 py-2 border border-border rounded-md"

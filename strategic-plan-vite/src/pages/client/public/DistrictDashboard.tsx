@@ -18,14 +18,14 @@ import { SlidePanel } from '../../../components/SlidePanel';
 import { PerformanceIndicator } from '../../../components/PerformanceIndicator';
 import { AnnualProgressChart } from '../../../components/AnnualProgressChart';
 import { GoalNarrativeDetail } from '../../../components/GoalNarrativeDetail';
-import type { Goal } from '../../../lib/types';
+import type { Goal, TimeSeriesDataPoint } from '../../../lib/types';
 import { getProgressColor } from '../../../lib/types';
 
 export function DistrictDashboard() {
   const { slug } = useParams<{ slug: string }>();
   const { data: district, isLoading: districtLoading } = useDistrict(slug!);
   const { data: goals, isLoading: goalsLoading } = useGoals(district?.id || '');
-  const { isLoading: metricsLoading } = useMetrics(district?.id || '');
+  const { data: metrics, isLoading: metricsLoading } = useMetrics(district?.id || '');
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [showSlidePanel, setShowSlidePanel] = useState(false);
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
@@ -344,6 +344,22 @@ export function DistrictDashboard() {
           <div className="h-full flex flex-col">
             {/* Header Section - Fixed */}
             <div className="p-6 border-b border-neutral-200 space-y-4">
+              {/* Visual Indicator Badge */}
+              {selectedGoal.indicator_text && (
+                <div className="flex justify-end">
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full text-xs font-medium px-2.5 py-1"
+                    style={{
+                      backgroundColor: selectedGoal.indicator_color || '#10b981',
+                      color: '#ffffff'
+                    }}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-white/80"></span>
+                    {selectedGoal.indicator_text}
+                  </span>
+                </div>
+              )}
+
               {/* Description */}
               <div>
                 <p className="text-neutral-600 text-sm leading-relaxed">
@@ -372,13 +388,21 @@ export function DistrictDashboard() {
                     const childProgress = child.overall_progress_override ?? child.overall_progress ?? 0;
                     const isExpanded = expandedGoalId === child.id;
 
-                    // Mock data for demonstration - will be replaced with real data from backend
-                    const mockChartData = index === 0 ? [
-                      { year: '2021', value: 3.96, target: 4.0 },
-                      { year: '2022', value: 2.76, target: 4.0 },
-                      { year: '2023', value: 3.92, target: 4.0 },
-                      { year: '2024', value: 2.28, target: 4.0 }
-                    ] : null;
+                    // Get real metrics for this goal
+                    const goalMetrics = metrics?.filter(m => m.goal_id === child.id) || [];
+                    const primaryMetric = goalMetrics.find(m => m.is_primary) || goalMetrics[0];
+
+                    // Convert metric visualization_config.dataPoints to chart data format
+                    const dataPoints = primaryMetric?.visualization_config?.dataPoints ||
+                                     primaryMetric?.data_points;
+
+                    const chartData = dataPoints && Array.isArray(dataPoints) ?
+                      dataPoints.map((dp: any) => ({
+                        year: dp.period || dp.date || dp.label || '',
+                        value: Number(dp.value) || 0,
+                        target: Number(dp.target || primaryMetric?.target_value) || undefined
+                      })).filter(d => d.year) // Only include entries with a year/date
+                      : null;
 
                     const mockNarrative = index === 1 ? {
                       summary: "The Department of Education ranks schools based on State testing of Needs Improvement, Good, Great, and Excellent. The district has received a marking of Great the last three years. This past year, the district missed excellent, by .06 overall.",
@@ -412,24 +436,34 @@ export function DistrictDashboard() {
                                 <p className="text-sm text-neutral-600 mb-2">{child.description}</p>
                               )}
                             </div>
-                            <div className="flex-shrink-0">
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                On Track
-                              </span>
-                            </div>
+                            {child.indicator_text && (
+                              <div className="flex-shrink-0">
+                                <span
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+                                  style={{
+                                    backgroundColor: child.indicator_color || '#10b981',
+                                    color: '#ffffff'
+                                  }}
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
+                                  {child.indicator_text}
+                                </span>
+                              </div>
+                            )}
                           </div>
 
-                          {/* Performance Indicator */}
-                          <PerformanceIndicator
-                            progress={childProgress}
-                            displayMode={child.overall_progress_display_mode || 'qualitative'}
-                            customValue={child.overall_progress_custom_value}
-                            showLabels={true}
-                            onClick={() => {
-                              setExpandedGoalId(isExpanded ? null : child.id);
-                            }}
-                          />
+                          {/* Performance Indicator - Only show if enabled */}
+                          {child.show_progress_bar !== false && (
+                            <PerformanceIndicator
+                              progress={childProgress}
+                              displayMode={child.overall_progress_display_mode || 'qualitative'}
+                              customValue={child.overall_progress_custom_value}
+                              showLabels={true}
+                              onClick={() => {
+                                setExpandedGoalId(isExpanded ? null : child.id);
+                              }}
+                            />
+                          )}
                         </div>
 
                         {/* Expanded Detail Section */}
@@ -437,13 +471,30 @@ export function DistrictDashboard() {
                           <div className="border-t border-neutral-200 p-5 bg-neutral-50 animate-in slide-in-from-top duration-300">
                             <div className="space-y-4">
                               {/* Primary metrics/charts for this goal */}
-                              {mockChartData ? (
-                                <AnnualProgressChart
-                                  data={mockChartData}
-                                  title="Annual Progress"
-                                  description="Survey data showing year-over-year trends. The annual tracking increases each year shown are committed to..."
-                                  unit=""
-                                />
+                              {primaryMetric && (chartData && chartData.length > 0) ? (
+                                primaryMetric.visualization_type === 'likert-scale' ? (
+                                  <div className="bg-white rounded-lg border border-neutral-200 p-5">
+                                    <h4 className="font-semibold text-neutral-900 mb-3">
+                                      {primaryMetric.metric_name || "Survey Results"}
+                                    </h4>
+                                    {primaryMetric.description && (
+                                      <p className="text-sm text-neutral-600 mb-4">{primaryMetric.description}</p>
+                                    )}
+                                    <AnnualProgressChart
+                                      data={chartData}
+                                      title=""
+                                      description=""
+                                      unit=""
+                                    />
+                                  </div>
+                                ) : (
+                                  <AnnualProgressChart
+                                    data={chartData}
+                                    title={primaryMetric?.metric_name || "Annual Progress"}
+                                    description={primaryMetric?.description || "Year-over-year progress tracking"}
+                                    unit={primaryMetric?.unit || ""}
+                                  />
+                                )
                               ) : mockNarrative ? (
                                 <GoalNarrativeDetail
                                   title="Academic Performance Details"
@@ -504,16 +555,18 @@ export function DistrictDashboard() {
                                             </div>
                                           </div>
 
-                                          {/* Performance Indicator for Sub-goal */}
-                                          <PerformanceIndicator
-                                            progress={subGoalProgress}
-                                            displayMode={subGoal.overall_progress_display_mode || 'percentage'}
-                                            customValue={subGoal.overall_progress_custom_value}
-                                            showLabels={false}
-                                            onClick={() => {
-                                              setExpandedSubGoalId(isSubExpanded ? null : subGoal.id);
-                                            }}
-                                          />
+                                          {/* Performance Indicator for Sub-goal - Only show if enabled */}
+                                          {subGoal.show_progress_bar !== false && (
+                                            <PerformanceIndicator
+                                              progress={subGoalProgress}
+                                              displayMode={subGoal.overall_progress_display_mode || 'percentage'}
+                                              customValue={subGoal.overall_progress_custom_value}
+                                              showLabels={false}
+                                              onClick={() => {
+                                                setExpandedSubGoalId(isSubExpanded ? null : subGoal.id);
+                                              }}
+                                            />
+                                          )}
                                         </div>
 
                                         {/* Expanded Sub-goal Detail */}
@@ -533,9 +586,10 @@ export function DistrictDashboard() {
                                 </div>
                               )}
 
-                              {!mockChartData && !mockNarrative && (!child.children || child.children.length === 0) && (
+                              {!chartData && !mockNarrative && (!child.children || child.children.length === 0) && (
                                 <div className="text-center py-8 text-neutral-500">
-                                  <p className="text-sm">Detailed metrics coming soon</p>
+                                  <p className="text-sm">No metrics data available yet</p>
+                                  <p className="text-xs mt-1">Metrics will appear here once data is added</p>
                                 </div>
                               )}
                             </div>

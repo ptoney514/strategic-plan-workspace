@@ -15,7 +15,7 @@ interface GoalBuilderProps {
 export function GoalBuilder({ goal, isOpen, onClose, onSuccess }: GoalBuilderProps) {
   console.log('[GoalBuilder] Component loaded - NEW VERSION with metrics management');
   const updateGoalMutation = useUpdateGoal();
-  const { data: metrics, refetch: refetchMetrics } = useMetrics(goal?.id || '');
+  const { data: metrics, refetch: refetchMetrics, isLoading: isLoadingMetrics } = useMetrics(goal?.id || '');
   const createMetricMutation = useCreateMetric();
   const updateMetricMutation = useUpdateMetric();
   const deleteMetricMutation = useDeleteMetric();
@@ -24,12 +24,14 @@ export function GoalBuilder({ goal, isOpen, onClose, onSuccess }: GoalBuilderPro
     title: '',
     description: '',
     indicator_text: '',
-    indicator_color: '#10b981'
+    indicator_color: '#10b981',
+    show_progress_bar: true
   });
   const [errors, setErrors] = useState<{ title?: string; description?: string }>({});
   const [showMetricWizard, setShowMetricWizard] = useState(false);
   const [editingMetric, setEditingMetric] = useState<Metric | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isRefetchingMetrics, setIsRefetchingMetrics] = useState(false);
 
   useEffect(() => {
     if (goal) {
@@ -37,7 +39,8 @@ export function GoalBuilder({ goal, isOpen, onClose, onSuccess }: GoalBuilderPro
         title: goal.title || '',
         description: goal.description || '',
         indicator_text: goal.indicator_text || '',
-        indicator_color: goal.indicator_color || '#10b981'
+        indicator_color: goal.indicator_color || '#10b981',
+        show_progress_bar: goal.show_progress_bar !== false // default to true if not set
       });
     }
   }, [goal]);
@@ -60,14 +63,19 @@ export function GoalBuilder({ goal, isOpen, onClose, onSuccess }: GoalBuilderPro
 
     setIsSaving(true);
     try {
+      const updates = {
+        title: formData.title,
+        description: formData.description,
+        indicator_text: formData.indicator_text || undefined,
+        indicator_color: formData.indicator_color || undefined,
+        show_progress_bar: formData.show_progress_bar
+      };
+
+      console.log('[GoalBuilder] Saving goal updates:', updates);
+
       await updateGoalMutation.mutateAsync({
         id: goal.id,
-        updates: {
-          title: formData.title,
-          description: formData.description,
-          indicator_text: formData.indicator_text || undefined,
-          indicator_color: formData.indicator_color || undefined
-        }
+        updates
       });
 
       onSuccess?.();
@@ -80,23 +88,43 @@ export function GoalBuilder({ goal, isOpen, onClose, onSuccess }: GoalBuilderPro
   };
 
   const handleCreateMetric = async (metricData: any) => {
-    await createMetricMutation.mutateAsync(metricData);
-    await refetchMetrics();
+    setIsRefetchingMetrics(true);
+    try {
+      await createMetricMutation.mutateAsync(metricData);
+      // Force refetch to ensure new metric appears immediately
+      await refetchMetrics();
+    } finally {
+      setIsRefetchingMetrics(false);
+    }
   };
 
   const handleUpdateMetric = async (metricData: any) => {
     if (!editingMetric) return;
-    await updateMetricMutation.mutateAsync({
-      id: editingMetric.id,
-      updates: metricData
-    });
-    await refetchMetrics();
+    setIsRefetchingMetrics(true);
+    try {
+      console.log('[GoalBuilder] Updating metric:', editingMetric.id, metricData);
+      await updateMetricMutation.mutateAsync({
+        id: editingMetric.id,
+        updates: metricData
+      });
+      // Force refetch to ensure updated metric appears immediately
+      await refetchMetrics();
+      console.log('[GoalBuilder] Metric updated successfully');
+    } finally {
+      setIsRefetchingMetrics(false);
+    }
   };
 
   const handleDeleteMetric = async (metricId: string) => {
     if (confirm('Are you sure you want to delete this metric?')) {
-      await deleteMetricMutation.mutateAsync(metricId);
-      await refetchMetrics();
+      setIsRefetchingMetrics(true);
+      try {
+        await deleteMetricMutation.mutateAsync(metricId);
+        // Force refetch to ensure deleted metric is removed immediately
+        await refetchMetrics();
+      } finally {
+        setIsRefetchingMetrics(false);
+      }
     }
   };
 
@@ -215,6 +243,32 @@ export function GoalBuilder({ goal, isOpen, onClose, onSuccess }: GoalBuilderPro
                   </div>
                 )}
               </div>
+
+              {/* Progress Bar Toggle */}
+              <div className="space-y-3 pt-4 border-t border-border">
+                <label className="block text-sm font-medium">Progress Bar</label>
+                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium">Show Progress Bar</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Display a progress indicator on the public dashboard
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, show_progress_bar: !formData.show_progress_bar })}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      formData.show_progress_bar ? 'bg-blue-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        formData.show_progress_bar ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Metrics Section */}
@@ -237,7 +291,12 @@ export function GoalBuilder({ goal, isOpen, onClose, onSuccess }: GoalBuilderPro
               </div>
 
               {/* Metrics List */}
-              {metrics && metrics.length > 0 ? (
+              {isLoadingMetrics || isRefetchingMetrics ? (
+                <div className="text-center py-8 border-2 border-dashed border-border rounded-lg">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                  <p className="text-muted-foreground text-sm">Loading metrics...</p>
+                </div>
+              ) : metrics && metrics.length > 0 ? (
                 <div className="space-y-2">
                   {metrics.map((metric) => (
                     <div

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MetricBuilderWizard } from '../../../components/MetricBuilderWizard';
-import { SimpleGoalEdit } from '../../../components/SimpleGoalEdit';
 import {
   ChevronDown,
   ChevronRight,
@@ -36,9 +35,18 @@ export function AdminGoals() {
   const { data: goals, isLoading: loading, refetch } = useGoals(district?.id!);
   const { data: metrics, refetch: refetchMetrics } = useMetrics(district?.id!);
   const createMetricMutation = useCreateMetric();
-  const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
   const [metricWizardGoal, setMetricWizardGoal] = useState<Goal | null>(null);
-  const [editGoalWizard, setEditGoalWizard] = useState<Goal | null>(null);
+
+  // Auto-expand all objectives to show their child goals
+  const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
+
+  // Auto-expand all level 0 goals when data loads
+  React.useEffect(() => {
+    if (goals) {
+      const level0Ids = goals.filter(g => g.level === 0).map(g => g.id);
+      setExpandedGoals(new Set(level0Ids));
+    }
+  }, [goals]);
   const [deleteModal, setDeleteModal] = useState<Goal | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [previewGoal, setPreviewGoal] = useState<Goal | null>(null);
@@ -166,12 +174,17 @@ export function AdminGoals() {
                 </button>
               )}
               <button
-                onClick={() => isObjective
-                  ? navigate(`/${slug}/admin/objectives/${goal.id}/edit`)
-                  : setEditGoalWizard(goal)
-                }
+                onClick={() => {
+                  if (goal.level === 0) {
+                    navigate(`/${slug}/admin/objectives/${goal.id}/edit`);
+                  } else {
+                    // For level 1+ goals, navigate to edit the parent objective
+                    // The user can then edit the goal within the objective builder
+                    navigate(`/${slug}/admin/objectives/${goal.parent_id}/edit`);
+                  }
+                }}
                 className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                title="Edit Goal"
+                title={goal.level === 0 ? "Edit Objective" : "Edit Goal"}
               >
                 <Edit2 className="h-4 w-4" />
               </button>
@@ -320,7 +333,14 @@ export function AdminGoals() {
                       <span>Preview</span>
                     </button>
                     <button
-                      onClick={() => navigate(`/${slug}/admin/objectives/${goal.id}/edit`)}
+                      onClick={() => {
+                        if (goal.level === 0) {
+                          navigate(`/${slug}/admin/objectives/${goal.id}/edit`);
+                        } else {
+                          // For level 1+ goals, navigate to edit the parent objective
+                          navigate(`/${slug}/admin/objectives/${goal.parent_id}/edit`);
+                        }
+                      }}
                       className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition-colors"
                     >
                       <Edit2 className="h-3 w-3" />
@@ -470,17 +490,6 @@ export function AdminGoals() {
           />
         )}
 
-        {/* Simple Goal Edit */}
-        <SimpleGoalEdit
-          goal={editGoalWizard}
-          isOpen={!!editGoalWizard}
-          onClose={() => setEditGoalWizard(null)}
-          onSuccess={async () => {
-            await refetch();
-            setEditGoalWizard(null);
-          }}
-        />
-
         {/* Preview Panel - Public View */}
         <SlidePanel
           isOpen={showPreviewPanel}
@@ -553,16 +562,18 @@ export function AdminGoals() {
                               </div>
                             </div>
 
-                            {/* Performance Indicator */}
-                            <PerformanceIndicator
-                              progress={childProgress}
-                              displayMode={child.overall_progress_display_mode || 'qualitative'}
-                              customValue={child.overall_progress_custom_value}
-                              showLabels={true}
-                              onClick={() => {
-                                setExpandedPreviewGoalId(isExpanded ? null : child.id);
-                              }}
-                            />
+                            {/* Performance Indicator - Only show if enabled */}
+                            {child.show_progress_bar !== false && (
+                              <PerformanceIndicator
+                                progress={childProgress}
+                                displayMode={child.overall_progress_display_mode || 'qualitative'}
+                                customValue={child.overall_progress_custom_value}
+                                showLabels={true}
+                                onClick={() => {
+                                  setExpandedPreviewGoalId(isExpanded ? null : child.id);
+                                }}
+                              />
+                            )}
                           </div>
 
                           {/* Expanded Detail Section */}
@@ -594,16 +605,18 @@ export function AdminGoals() {
                                               </div>
                                             </div>
 
-                                            {/* Performance Indicator for Sub-goal */}
-                                            <PerformanceIndicator
-                                              progress={subGoalProgress}
-                                              displayMode={subGoal.overall_progress_display_mode || 'percentage'}
-                                              customValue={subGoal.overall_progress_custom_value}
-                                              showLabels={false}
-                                              onClick={() => {
-                                                setExpandedPreviewSubGoalId(isSubExpanded ? null : subGoal.id);
-                                              }}
-                                            />
+                                            {/* Performance Indicator for Sub-goal - Only show if enabled */}
+                                            {subGoal.show_progress_bar !== false && (
+                                              <PerformanceIndicator
+                                                progress={subGoalProgress}
+                                                displayMode={subGoal.overall_progress_display_mode || 'percentage'}
+                                                customValue={subGoal.overall_progress_custom_value}
+                                                showLabels={false}
+                                                onClick={() => {
+                                                  setExpandedPreviewSubGoalId(isSubExpanded ? null : subGoal.id);
+                                                }}
+                                              />
+                                            )}
                                           </div>
                                         </div>
                                       );

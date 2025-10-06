@@ -7,7 +7,7 @@ export class MetricsService {
       .from('spb_metrics')
       .select('*')
       .eq('goal_id', goalId)
-      .order('display_order', { ascending: true });
+      .order('created_at', { ascending: true });
 
     if (error) {
       console.error('Error fetching metrics:', error);

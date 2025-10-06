@@ -107,7 +107,7 @@ export interface Metric {
   // Metric calculation type (for overall progress)
   metric_calculation_type?: 'numeric' | 'ratio' | 'qualitative' | 'percentage' | 'count' | 'rollup';
   qualitative_mapping?: Record<string, number>;
-  
+
   collection_frequency?: string;
   data_source_details?: string;
   last_collected?: string;
@@ -125,6 +125,10 @@ export interface Metric {
   status_reason?: string;
   created_at?: string;
   updated_at?: string;
+
+  // Visualization fields (for custom metric visualizations)
+  visualization_type?: string;
+  visualization_config?: any; // JSONB field containing chart-specific configuration
 }
 
 export interface DataPoint {

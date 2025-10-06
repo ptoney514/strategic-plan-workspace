@@ -61,10 +61,16 @@ const AVAILABLE_COMPONENTS: ComponentItem[] = [
 ];
 
 export function ObjectiveBuilder() {
-  const { slug, objectiveId } = useParams();
+  const { slug, objectiveId, goalId } = useParams();
   const navigate = useNavigate();
   const { data: district } = useDistrict(slug!);
-  const isEditMode = !!objectiveId;
+
+  // Determine what we're editing: objectiveId for level 0, goalId for level 1+
+  const editingId = objectiveId || goalId;
+  const isEditMode = !!editingId;
+  const isEditingObjective = !!objectiveId; // true if editing via /objectives/:id/edit route
+
+  const [editingLevel, setEditingLevel] = useState<0 | 1 | 2>(0);
   const [builderState, setBuilderState] = useState<BuilderState>({
     objective: {
       title: '',
@@ -94,6 +100,13 @@ export function ObjectiveBuilder() {
   }>({});
 
   const categories = [...new Set(AVAILABLE_COMPONENTS.map(c => c.category))];
+
+  // Dynamic labels based on editing level
+  const entityLabel = editingLevel === 0 ? 'Strategic Objective' : editingLevel === 1 ? 'Goal' : 'Sub-Goal';
+  const entityLabelLower = entityLabel.toLowerCase();
+  const childLabel = editingLevel === 0 ? 'Goals' : 'Sub-Goals';
+  const childLabelSingular = editingLevel === 0 ? 'Goal' : 'Sub-Goal';
+  const canHaveChildren = editingLevel < 2; // Level 2 (sub-goals) cannot have children
 
   // Real-time validation
   const validateObjectiveTitle = (title: string) => {
@@ -129,27 +142,37 @@ export function ObjectiveBuilder() {
     return undefined;
   };
 
-  // Load objective data in edit mode
+  // Load goal data in edit mode (works for any level)
   useEffect(() => {
-    if (isEditMode && objectiveId) {
+    if (isEditMode && editingId) {
       setIsLoading(true);
       Promise.all([
-        GoalsService.getById(objectiveId),
-        GoalsService.getChildren(objectiveId)
+        GoalsService.getById(editingId),
+        GoalsService.getChildren(editingId)
       ])
-        .then(async ([objective, children]) => {
-          if (objective) {
+        .then(async ([goal, children]) => {
+          if (goal) {
+            // If we're editing a level 1+ goal via /goals/:goalId/edit route,
+            // redirect to edit the parent objective instead
+            if (goalId && goal.level > 0 && goal.parent_id) {
+              navigate(`/${slug}/admin/objectives/${goal.parent_id}/edit`, { replace: true });
+              return;
+            }
+
+            // Set the editing level based on the loaded goal
+            setEditingLevel(goal.level as 0 | 1 | 2);
+
             setBuilderState(prev => ({
               ...prev,
-              objective: objective,
+              objective: goal,
               goals: children || [],
-              headerMode: objective.image_url ? 'image' : 'color',
+              headerMode: goal.image_url ? 'image' : 'color',
               visibleComponents: {
-                title: !!objective.title,
-                description: !!objective.description,
-                cardImage: !!(objective.image_url || objective.header_color),
-                progressBar: objective.show_progress_bar !== false, // default to true if not set
-                visualBadge: !!(objective.indicator_text), // default to false if not set
+                title: !!goal.title,
+                description: !!goal.description,
+                cardImage: !!(goal.image_url || goal.header_color),
+                progressBar: goal.show_progress_bar !== false, // default to true if not set
+                visualBadge: !!(goal.indicator_text), // default to false if not set
                 cardColor: true,
               }
             }));
@@ -166,14 +189,14 @@ export function ObjectiveBuilder() {
           }
         })
         .catch(error => {
-          console.error('Error loading objective:', error);
-          alert('Failed to load objective');
+          console.error('Error loading goal:', error);
+          alert('Failed to load goal');
         })
         .finally(() => {
           setIsLoading(false);
         });
     }
-  }, [isEditMode, objectiveId]);
+  }, [isEditMode, editingId, goalId, navigate, slug]);
 
   const [editingProperty, setEditingProperty] = useState<string | null>(null);
   const [propertyValue, setPropertyValue] = useState<string>('');
@@ -200,6 +223,21 @@ export function ObjectiveBuilder() {
 
   const saveProperty = () => {
     if (!editingProperty) return;
+
+    // Check if we're editing from within the goal modal
+    if (showGoalModal) {
+      // Update goalForm instead of builderState
+      if (editingProperty === 'progress_display') {
+        setGoalForm(prev => ({
+          ...prev,
+          overall_progress_display_mode: propertyValue as any,
+          overall_progress_custom_value: propertyValue !== 'custom' ? '' : prev.overall_progress_custom_value
+        }));
+      }
+      setEditingProperty(null);
+      setPropertyValue('');
+      return;
+    }
 
     let updates: Partial<Goal> = {};
 
@@ -244,7 +282,11 @@ export function ObjectiveBuilder() {
     description: '',
     indicator_text: '',
     indicator_color: '#10b981',
-    metrics: [] as any[]
+    metrics: [] as any[],
+    show_progress_bar: true,
+    overall_progress_display_mode: 'percentage' as 'percentage' | 'qualitative' | 'custom',
+    overall_progress_custom_value: '',
+    overall_progress_override: undefined as number | undefined
   });
   const [goalFormError, setGoalFormError] = useState<string | undefined>(undefined);
 
@@ -266,7 +308,11 @@ export function ObjectiveBuilder() {
       description: '',
       indicator_text: '',
       indicator_color: '#10b981',
-      metrics: []
+      metrics: [],
+      show_progress_bar: true,
+      overall_progress_display_mode: 'percentage',
+      overall_progress_custom_value: '',
+      overall_progress_override: undefined
     });
     setGoalFormError(undefined);
     setShowGoalModal(true);
@@ -280,7 +326,11 @@ export function ObjectiveBuilder() {
       description: goal.description || '',
       indicator_text: goal.indicator_text || '',
       indicator_color: goal.indicator_color || '#10b981',
-      metrics: (goal as any).metrics || []
+      metrics: (goal as any).metrics || [],
+      show_progress_bar: goal.show_progress_bar !== false,
+      overall_progress_display_mode: goal.overall_progress_display_mode || 'percentage',
+      overall_progress_custom_value: goal.overall_progress_custom_value || '',
+      overall_progress_override: goal.overall_progress_override
     });
     setShowGoalModal(true);
   };
@@ -297,7 +347,11 @@ export function ObjectiveBuilder() {
           title: goalForm.title,
           description: goalForm.description,
           indicator_text: goalForm.indicator_text,
-          indicator_color: goalForm.indicator_color
+          indicator_color: goalForm.indicator_color,
+          show_progress_bar: goalForm.show_progress_bar,
+          overall_progress_display_mode: goalForm.overall_progress_display_mode,
+          overall_progress_custom_value: goalForm.overall_progress_custom_value,
+          overall_progress_override: goalForm.overall_progress_override
         } : g)
       }));
     } else {
@@ -312,6 +366,10 @@ export function ObjectiveBuilder() {
           level: 1,
           parent_id: prev.objective.id,
           goal_number: `${prev.goals.length + 1}`,
+          show_progress_bar: goalForm.show_progress_bar,
+          overall_progress_display_mode: goalForm.overall_progress_display_mode,
+          overall_progress_custom_value: goalForm.overall_progress_custom_value,
+          overall_progress_override: goalForm.overall_progress_override
         }]
       }));
     }
@@ -370,18 +428,18 @@ export function ObjectiveBuilder() {
 
     // Validate required fields
     if (!builderState.objective.title?.trim()) {
-      alert('Validation Error: Please enter an objective title');
+      alert(`Validation Error: Please enter a ${entityLabelLower} title`);
       return;
     }
 
     // Validate title length
     if (builderState.objective.title.trim().length < 3) {
-      alert('Validation Error: Objective title must be at least 3 characters long');
+      alert(`Validation Error: ${entityLabel} title must be at least 3 characters long`);
       return;
     }
 
     if (builderState.objective.title.trim().length > 200) {
-      alert('Validation Error: Objective title must be less than 200 characters');
+      alert(`Validation Error: ${entityLabel} title must be less than 200 characters`);
       return;
     }
 
@@ -391,19 +449,19 @@ export function ObjectiveBuilder() {
       return;
     }
 
-    // Validate goals
+    // Validate child goals/sub-goals
     for (let i = 0; i < builderState.goals.length; i++) {
       const goal = builderState.goals[i];
       if (!goal.title?.trim()) {
-        alert(`Validation Error: Goal ${i + 1} is missing a title`);
+        alert(`Validation Error: ${childLabelSingular} ${i + 1} is missing a title`);
         return;
       }
       if (goal.title.trim().length < 3) {
-        alert(`Validation Error: Goal ${i + 1} title must be at least 3 characters long`);
+        alert(`Validation Error: ${childLabelSingular} ${i + 1} title must be at least 3 characters long`);
         return;
       }
       if (goal.title.trim().length > 200) {
-        alert(`Validation Error: Goal ${i + 1} title must be less than 200 characters`);
+        alert(`Validation Error: ${childLabelSingular} ${i + 1} title must be less than 200 characters`);
         return;
       }
     }
@@ -416,8 +474,8 @@ export function ObjectiveBuilder() {
         district_id: district.id,
         title: builderState.objective.title.trim(),
         description: builderState.objective.description?.trim() || null,
-        level: 0,
-        parent_id: null,
+        level: editingLevel, // Dynamic level based on what we're editing
+        parent_id: editingLevel === 0 ? null : builderState.objective.parent_id, // Preserve parent for non-objectives
         image_url: builderState.objective.image_url || null,
         header_color: builderState.objective.header_color || null,
         show_progress_bar: builderState.visibleComponents.progressBar,
@@ -434,23 +492,30 @@ export function ObjectiveBuilder() {
         executive_summary: builderState.objective.executive_summary || null,
       };
 
-      if (isEditMode && objectiveId) {
-        // UPDATE existing objective
-        savedObjective = await GoalsService.update(objectiveId, objectiveData);
-        console.log('Updated objective:', savedObjective);
+      if (isEditMode && editingId) {
+        // UPDATE existing goal (at any level)
+        savedObjective = await GoalsService.update(editingId, objectiveData);
+        console.log(`Updated ${entityLabelLower}:`, savedObjective);
 
-        // Delete all existing child goals
-        const existingChildren = await GoalsService.getChildren(objectiveId);
-        for (const child of existingChildren) {
-          await GoalsService.delete(child.id);
+        // NON-DESTRUCTIVE child handling: update existing, create new, delete removed
+        const existingChildren = await GoalsService.getChildren(editingId);
+        const existingChildIds = existingChildren.map(c => c.id);
+        const currentChildIds = builderState.goals.filter(g => g.id).map(g => g.id!);
+
+        // Find children that were removed from the UI (exist in DB but not in current state)
+        const childrenToDelete = existingChildIds.filter(id => !currentChildIds.includes(id));
+        for (const childId of childrenToDelete) {
+          console.log(`Deleting removed child: ${childId}`);
+          await GoalsService.delete(childId);
         }
       } else {
-        // CREATE new objective
+        // CREATE new goal (at any level)
         savedObjective = await GoalsService.create(objectiveData);
-        console.log('Created objective:', savedObjective);
+        console.log(`Created ${entityLabelLower}:`, savedObjective);
       }
 
-      // Create/recreate all Goals (level 1) under this objective
+      // Update existing children or create new ones (NON-DESTRUCTIVE)
+      const childLevel = (editingLevel + 1) as 1 | 2;
       for (const goal of builderState.goals) {
         const goalData: Partial<Goal> = {
           district_id: district.id,
@@ -458,14 +523,27 @@ export function ObjectiveBuilder() {
           description: goal.description?.trim() || null,
           indicator_text: goal.indicator_text || null,
           indicator_color: goal.indicator_color || null,
-          level: 1,
+          show_progress_bar: goal.show_progress_bar !== false,
+          overall_progress: goal.overall_progress_override || goal.overall_progress || 0,
+          overall_progress_override: goal.overall_progress_override,
+          overall_progress_display_mode: goal.overall_progress_display_mode || 'percentage',
+          overall_progress_custom_value: goal.overall_progress_custom_value || null,
+          level: childLevel, // Dynamic based on parent level
           parent_id: savedObjective.id,
         };
 
-        await GoalsService.create(goalData);
+        if (goal.id) {
+          // UPDATE existing child goal - preserves ID, metrics, and all data
+          console.log(`Updating existing ${childLabelSingular.toLowerCase()}: ${goal.id}`);
+          await GoalsService.update(goal.id, goalData);
+        } else {
+          // CREATE new child goal
+          console.log(`Creating new ${childLabelSingular.toLowerCase()}`);
+          await GoalsService.create(goalData);
+        }
       }
 
-      alert(isEditMode ? 'Strategic Objective updated successfully!' : 'Strategic Objective created successfully!');
+      alert(isEditMode ? `${entityLabel} updated successfully!` : `${entityLabel} created successfully!`);
       navigate(`/${slug}/admin/goals`);
     } catch (error) {
       console.error('Error saving objective:', error);
@@ -495,9 +573,14 @@ export function ObjectiveBuilder() {
         {/* Header */}
         <div className="p-6 border-b border-border bg-muted/30">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-lg font-semibold text-foreground">Strategic Objective Builder</h2>
+            <h2 className="text-lg font-semibold text-foreground">
+              {editingLevel === 0 ? 'Strategic Objective Builder' :
+               `${entityLabel} Editor${builderState.objective.goal_number ? ` - ${builderState.objective.goal_number}` : ''}`}
+            </h2>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Create your strategic objective and add goals
+              {editingLevel === 0
+                ? 'Create your strategic objective and add goals'
+                : `Edit ${entityLabelLower} details and manage ${childLabel.toLowerCase()}`}
             </p>
           </div>
         </div>
@@ -944,30 +1027,41 @@ export function ObjectiveBuilder() {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
-          {/* Add Goal Button */}
-          <button
-            onClick={addGoal}
-            className="w-full flex items-center space-x-3 p-4 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-lg text-left transition-all group"
-          >
-            <div className="flex-shrink-0 p-2 bg-blue-600 text-white rounded-lg">
-              <Plus size={20} />
-            </div>
-            <div>
-              <div className="font-semibold text-blue-900 text-sm">
-                Add New Goal
+          {/* Add Goal/Sub-Goal Button - Only show if level allows children */}
+          {canHaveChildren ? (
+            <button
+              onClick={addGoal}
+              className="w-full flex items-center space-x-3 p-4 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-lg text-left transition-all group"
+            >
+              <div className="flex-shrink-0 p-2 bg-blue-600 text-white rounded-lg">
+                <Plus size={20} />
               </div>
-              <div className="text-xs text-blue-700 mt-0.5">
-                Click to create a sub-goal
+              <div>
+                <div className="font-semibold text-blue-900 text-sm">
+                  Add New {childLabelSingular}
+                </div>
+                <div className="text-xs text-blue-700 mt-0.5">
+                  Click to create a {childLabelSingular.toLowerCase()}
+                </div>
               </div>
+            </button>
+          ) : (
+            <div className="w-full p-4 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg text-center">
+              <p className="text-sm text-gray-600">
+                Sub-goals cannot have further nested children
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Use metrics and visualizations to track progress on this sub-goal
+              </p>
             </div>
-          </button>
+          )}
 
-          {/* Goals List */}
+          {/* Goals/Sub-Goals List */}
           {builderState.goals.length > 0 && (
             <div className="mt-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-medium text-muted-foreground">
-                  GOALS ({builderState.goals.length})
+                  {childLabel.toUpperCase()} ({builderState.goals.length})
                 </span>
               </div>
               <div className="space-y-1.5">
@@ -1444,11 +1538,20 @@ export function ObjectiveBuilder() {
                         </label>
                         <input
                           type="text"
-                          value={builderState.objective.overall_progress_custom_value || ''}
-                          onChange={(e) => setBuilderState(prev => ({
-                            ...prev,
-                            objective: { ...prev.objective, overall_progress_custom_value: e.target.value }
-                          }))}
+                          value={showGoalModal ? goalForm.overall_progress_custom_value : builderState.objective.overall_progress_custom_value || ''}
+                          onChange={(e) => {
+                            if (showGoalModal) {
+                              setGoalForm(prev => ({
+                                ...prev,
+                                overall_progress_custom_value: e.target.value
+                              }));
+                            } else {
+                              setBuilderState(prev => ({
+                                ...prev,
+                                objective: { ...prev.objective, overall_progress_custom_value: e.target.value }
+                              }));
+                            }
+                          }}
                           placeholder='e.g., "3.71", "Proficient", "On Track"'
                           className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                         />
@@ -1675,6 +1778,63 @@ export function ObjectiveBuilder() {
                     </div>
                   )}
                 </div>
+
+                {/* Progress Bar Preview */}
+                {goalForm.show_progress_bar && (
+                  <div className="border-t border-border pt-4">
+                    <div className="p-4 bg-muted/20 rounded-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="text-xs font-medium text-muted-foreground">
+                          OVERALL PROGRESS (Preview)
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            {goalForm.overall_progress_display_mode === 'custom' && goalForm.overall_progress_custom_value
+                              ? `Displays: "${goalForm.overall_progress_custom_value}" (Bar: ${Math.round(goalForm.overall_progress_override || 0)}%)`
+                              : `${Math.round(goalForm.overall_progress_override || 0)}%`
+                            }
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingProperty('progress_display');
+                              setPropertyValue(goalForm.overall_progress_display_mode);
+                            }}
+                            className="p-1 hover:bg-muted rounded transition-colors"
+                            title="Configure display mode"
+                          >
+                            <Edit2 className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                        </div>
+                      </div>
+                      <OverallProgressBar
+                        goal={{
+                          overall_progress: goalForm.overall_progress_override || 0,
+                          overall_progress_display_mode: goalForm.overall_progress_display_mode || 'percentage',
+                          overall_progress_custom_value: goalForm.overall_progress_custom_value
+                        } as Goal}
+                        showLabel={true}
+                      />
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={goalForm.overall_progress_override || 0}
+                        onChange={(e) => setGoalForm({
+                          ...goalForm,
+                          overall_progress_override: parseInt(e.target.value)
+                        })}
+                        className="w-full mt-3"
+                      />
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {goalForm.overall_progress_display_mode === 'custom'
+                          ? 'Slider controls the progress bar position and color (not the display value)'
+                          : 'Adjust slider to preview different progress levels'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Info about adding metrics */}
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-3">

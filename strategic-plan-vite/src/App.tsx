@@ -21,6 +21,7 @@ import { MetricsDashboard } from './pages/client/public/MetricsDashboard';
 // Client Admin Pages
 import { AdminDashboard } from './pages/client/admin/AdminDashboard';
 import { AdminGoals } from './pages/client/admin/AdminGoals';
+import AdminGoalsV2 from './pages/client/admin/AdminGoalsV2';
 import { AdminMetrics } from './pages/client/admin/AdminMetrics';
 import { AdminAudit } from './pages/client/admin/AdminAudit';
 import { AdminSettings } from './pages/client/admin/AdminSettings';
@@ -54,8 +55,10 @@ function App() {
         <Route path="/:slug/admin" element={<ClientAdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="goals" element={<AdminGoals />} />
+          <Route path="goals-v2" element={<AdminGoalsV2 />} />
           <Route path="objectives/new" element={<ObjectiveBuilder />} />
           <Route path="objectives/:objectiveId/edit" element={<ObjectiveBuilder />} />
+          <Route path="goals/:goalId/edit" element={<ObjectiveBuilder />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="audit" element={<AdminAudit />} />
         </Route>

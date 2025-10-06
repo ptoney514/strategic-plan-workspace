@@ -60,10 +60,12 @@ export function MetricBuilderWizard({
   // Load existing metric data when editing
   useEffect(() => {
     if (existingMetric && isOpen) {
+      console.log('[MetricBuilderWizard] Loading existing metric for editing:', existingMetric);
+      console.log('[MetricBuilderWizard] Visualization config:', existingMetric.visualization_config);
       setSelectedType(existingMetric.visualization_type || 'bar-chart');
       setMetricData(existingMetric.visualization_config || getDefaultConfig('bar-chart'));
       setMetricDetails({
-        name: existingMetric.metric_name || '',
+        name: existingMetric.metric_name || existingMetric.name || '',
         description: existingMetric.description || '',
         is_primary: false
       });
@@ -165,13 +167,14 @@ export function MetricBuilderWizard({
         metric_type: selectedType === 'percentage' ? 'percent' : 'number' as const
       };
 
+      console.log('[MetricBuilderWizard] Saving metric:', existingMetric ? 'UPDATE' : 'CREATE', metric);
       await onSave(metric);
       handleReset();
       onClose();
     } catch (error: any) {
-      console.error('Failed to create metric:', error);
+      console.error('Failed to save metric:', error);
       const errorMessage = error?.message || error?.error_description || JSON.stringify(error);
-      alert(`Failed to create metric: ${errorMessage}\n\nPlease check the console for details.`);
+      alert(`Failed to save metric: ${errorMessage}\n\nPlease check the console for details.`);
     } finally {
       setIsSaving(false);
     }
