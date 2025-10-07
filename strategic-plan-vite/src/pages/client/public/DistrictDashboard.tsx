@@ -410,13 +410,9 @@ export function DistrictDashboard() {
             <div className="flex-1 overflow-y-auto p-6">
               {/* Goals Overview Section */}
               <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Target className="h-5 w-5" />
+                <h3 className="text-xl font-semibold mb-4">
                   Goals
                 </h3>
-                <p className="text-sm text-neutral-600 mb-4">
-                  Track progress across all goals and measures within this strategic objective.
-                </p>
               </div>
 
               {/* Goals List */}
@@ -463,13 +459,13 @@ export function DistrictDashboard() {
                       <div key={child.id} className="bg-white border border-neutral-200 rounded-lg overflow-hidden transition-all">
                         <div className="p-5">
                           <div className="flex items-start gap-3 mb-4">
-                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center">
-                              <span className="text-sm font-semibold text-neutral-900">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-sm">
+                              <span className="text-base font-bold text-white">
                                 {child.goal_number}
                               </span>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-medium text-neutral-900 mb-1">{child.title}</h4>
+                              <h4 className="text-lg font-semibold text-neutral-900 mb-1">{child.title}</h4>
                               {child.description && !isExpanded && (
                                 <p className="text-sm text-neutral-600 mb-2">{child.description}</p>
                               )}
@@ -534,7 +530,6 @@ export function DistrictDashboard() {
                               {/* Sub-goals section */}
                               {child.children && child.children.length > 0 && (
                                 <div className="space-y-3 pt-4">
-                                  <h5 className="text-sm font-semibold text-neutral-700">Sub-Goals</h5>
                                   {child.children.map((subGoal: any, subIndex: number) => {
                                     const isSubExpanded = expandedSubGoalId === subGoal.id;
                                     const subGoalProgress = subGoal.overall_progress_override ?? subGoal.overall_progress ?? 0;
@@ -567,14 +562,14 @@ export function DistrictDashboard() {
                                     return (
                                       <div key={subGoal.id} className="bg-white border border-neutral-300 rounded-lg overflow-hidden">
                                         <div className="p-4">
-                                          <div className="flex items-start gap-2 mb-3">
-                                            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-neutral-200 flex items-center justify-center">
-                                              <span className="text-xs font-semibold text-neutral-900">
+                                          <div className="flex items-start gap-3 mb-3">
+                                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-sm">
+                                              <span className="text-base font-bold text-white">
                                                 {subGoal.goal_number}
                                               </span>
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                              <h5 className="text-sm font-medium text-neutral-900">{subGoal.title}</h5>
+                                              <h5 className="text-lg font-semibold text-neutral-900">{subGoal.title}</h5>
                                               {subGoal.description && !isSubExpanded && (
                                                 <p className="text-xs text-neutral-600 mt-1">{subGoal.description}</p>
                                               )}
