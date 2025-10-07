@@ -40,9 +40,13 @@ interface ComponentItem {
   category: string;
 }
 
+interface GoalWithChildren extends Partial<Goal> {
+  children?: GoalWithChildren[];
+}
+
 interface BuilderState {
   objective: Partial<Goal>;
-  goals: Partial<Goal>[];
+  goals: GoalWithChildren[];
   activeSlot: 'basic' | 'visual' | 'goals' | 'metrics' | 'properties' | null;
   visibleComponents: {
     title: boolean;
@@ -162,10 +166,39 @@ export function ObjectiveBuilder() {
             // Set the editing level based on the loaded goal
             setEditingLevel(goal.level as 0 | 1 | 2);
 
+            // Fetch sub-goals (level 2) for each level 1 goal
+            const goalsWithChildren: GoalWithChildren[] = [];
+            if (children && children.length > 0) {
+              const metricsMap: Record<string, Metric[]> = {};
+
+              for (const child of children) {
+                // Fetch metrics for this goal
+                const metrics = await MetricsService.getByGoal(child.id);
+                metricsMap[child.id] = metrics;
+
+                // Fetch sub-goals (children) for this level 1 goal
+                const subGoals = await GoalsService.getChildren(child.id);
+
+                // Fetch metrics for each sub-goal
+                if (subGoals && subGoals.length > 0) {
+                  for (const subGoal of subGoals) {
+                    const subGoalMetrics = await MetricsService.getByGoal(subGoal.id);
+                    metricsMap[subGoal.id] = subGoalMetrics;
+                  }
+                }
+
+                goalsWithChildren.push({
+                  ...child,
+                  children: subGoals || []
+                });
+              }
+              setGoalMetrics(metricsMap);
+            }
+
             setBuilderState(prev => ({
               ...prev,
               objective: goal,
-              goals: children || [],
+              goals: goalsWithChildren,
               headerMode: goal.image_url ? 'image' : 'color',
               visibleComponents: {
                 title: !!goal.title,
@@ -176,16 +209,6 @@ export function ObjectiveBuilder() {
                 cardColor: true,
               }
             }));
-
-            // Fetch metrics for each child goal
-            if (children && children.length > 0) {
-              const metricsMap: Record<string, Metric[]> = {};
-              for (const child of children) {
-                const metrics = await MetricsService.getByGoal(child.id);
-                metricsMap[child.id] = metrics;
-              }
-              setGoalMetrics(metricsMap);
-            }
           }
         })
         .catch(error => {
@@ -278,6 +301,8 @@ export function ObjectiveBuilder() {
 
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [editingGoalIndex, setEditingGoalIndex] = useState<number | null>(null);
+  const [editingSubGoalParentIndex, setEditingSubGoalParentIndex] = useState<number | null>(null); // Track parent goal when adding/editing sub-goal
+  const [editingSubGoalIndex, setEditingSubGoalIndex] = useState<number | null>(null); // Track sub-goal index within parent
   const [goalForm, setGoalForm] = useState({
     title: '',
     description: '',
@@ -339,7 +364,66 @@ export function ObjectiveBuilder() {
   const saveGoal = () => {
     if (!goalForm.title.trim()) return;
 
-    if (editingGoalIndex !== null) {
+    // Check if we're editing a sub-goal
+    if (editingSubGoalParentIndex !== null) {
+      if (editingSubGoalIndex !== null) {
+        // Update existing sub-goal
+        setBuilderState(prev => ({
+          ...prev,
+          goals: prev.goals.map((g, i) => {
+            if (i === editingSubGoalParentIndex) {
+              return {
+                ...g,
+                children: g.children?.map((sg, si) => si === editingSubGoalIndex ? {
+                  ...sg,
+                  title: goalForm.title,
+                  description: goalForm.description,
+                  indicator_text: goalForm.indicator_text,
+                  indicator_color: goalForm.indicator_color,
+                  show_progress_bar: goalForm.show_progress_bar,
+                  overall_progress_display_mode: goalForm.overall_progress_display_mode,
+                  overall_progress_custom_value: goalForm.overall_progress_custom_value,
+                  overall_progress_override: goalForm.overall_progress_override
+                } : sg)
+              };
+            }
+            return g;
+          })
+        }));
+      } else {
+        // Add new sub-goal
+        setBuilderState(prev => ({
+          ...prev,
+          goals: prev.goals.map((g, i) => {
+            if (i === editingSubGoalParentIndex) {
+              const subGoalNumber = (g.children?.length || 0) + 1;
+              return {
+                ...g,
+                children: [
+                  ...(g.children || []),
+                  {
+                    title: goalForm.title,
+                    description: goalForm.description,
+                    indicator_text: goalForm.indicator_text,
+                    indicator_color: goalForm.indicator_color,
+                    level: 2,
+                    parent_id: g.id,
+                    goal_number: `${g.goal_number}.${subGoalNumber}`,
+                    show_progress_bar: goalForm.show_progress_bar,
+                    overall_progress_display_mode: goalForm.overall_progress_display_mode,
+                    overall_progress_custom_value: goalForm.overall_progress_custom_value,
+                    overall_progress_override: goalForm.overall_progress_override
+                  }
+                ]
+              };
+            }
+            return g;
+          })
+        }));
+      }
+      setEditingSubGoalParentIndex(null);
+      setEditingSubGoalIndex(null);
+    } else if (editingGoalIndex !== null) {
       // Update existing goal
       setBuilderState(prev => ({
         ...prev,
@@ -370,7 +454,8 @@ export function ObjectiveBuilder() {
           show_progress_bar: goalForm.show_progress_bar,
           overall_progress_display_mode: goalForm.overall_progress_display_mode,
           overall_progress_custom_value: goalForm.overall_progress_custom_value,
-          overall_progress_override: goalForm.overall_progress_override
+          overall_progress_override: goalForm.overall_progress_override,
+          children: []
         }]
       }));
     }
@@ -383,6 +468,63 @@ export function ObjectiveBuilder() {
     setBuilderState(prev => ({
       ...prev,
       goals: prev.goals.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Sub-goal management functions
+  const addSubGoal = (parentGoalIndex: number) => {
+    setEditingSubGoalParentIndex(parentGoalIndex);
+    setEditingSubGoalIndex(null);
+    setEditingGoalIndex(null);
+    setGoalForm({
+      title: '',
+      description: '',
+      indicator_text: '',
+      indicator_color: '#10b981',
+      metrics: [],
+      show_progress_bar: true,
+      overall_progress_display_mode: 'percentage',
+      overall_progress_custom_value: '',
+      overall_progress_override: undefined
+    });
+    setGoalFormError(undefined);
+    setShowGoalModal(true);
+  };
+
+  const editSubGoal = (parentGoalIndex: number, subGoalIndex: number) => {
+    const parentGoal = builderState.goals[parentGoalIndex];
+    const subGoal = parentGoal.children?.[subGoalIndex];
+    if (!subGoal) return;
+
+    setEditingSubGoalParentIndex(parentGoalIndex);
+    setEditingSubGoalIndex(subGoalIndex);
+    setEditingGoalIndex(null);
+    setGoalForm({
+      title: subGoal.title || '',
+      description: subGoal.description || '',
+      indicator_text: subGoal.indicator_text || '',
+      indicator_color: subGoal.indicator_color || '#10b981',
+      metrics: (subGoal as any).metrics || [],
+      show_progress_bar: subGoal.show_progress_bar !== false,
+      overall_progress_display_mode: subGoal.overall_progress_display_mode || 'percentage',
+      overall_progress_custom_value: subGoal.overall_progress_custom_value || '',
+      overall_progress_override: subGoal.overall_progress_override
+    });
+    setShowGoalModal(true);
+  };
+
+  const removeSubGoal = (parentGoalIndex: number, subGoalIndex: number) => {
+    setBuilderState(prev => ({
+      ...prev,
+      goals: prev.goals.map((g, i) => {
+        if (i === parentGoalIndex) {
+          return {
+            ...g,
+            children: g.children?.filter((_, si) => si !== subGoalIndex) || []
+          };
+        }
+        return g;
+      })
     }));
   };
 
@@ -533,14 +675,56 @@ export function ObjectiveBuilder() {
           parent_id: savedObjective.id,
         };
 
+        let savedGoal: Goal;
         if (goal.id) {
           // UPDATE existing child goal - preserves ID, metrics, and all data
           console.log(`Updating existing ${childLabelSingular.toLowerCase()}: ${goal.id}`);
-          await GoalsService.update(goal.id, goalData);
+          savedGoal = await GoalsService.update(goal.id, goalData);
         } else {
           // CREATE new child goal
           console.log(`Creating new ${childLabelSingular.toLowerCase()}`);
-          await GoalsService.create(goalData);
+          savedGoal = await GoalsService.create(goalData);
+        }
+
+        // Handle sub-goals (level 2) if this is a level 1 goal
+        if (childLevel === 1 && goal.children && goal.children.length > 0) {
+          // Get existing sub-goals from database
+          const existingSubGoals = goal.id ? await GoalsService.getChildren(goal.id) : [];
+          const existingSubGoalIds = existingSubGoals.map(sg => sg.id);
+          const currentSubGoalIds = goal.children.filter(sg => sg.id).map(sg => sg.id!);
+
+          // Delete removed sub-goals
+          const subGoalsToDelete = existingSubGoalIds.filter(id => !currentSubGoalIds.includes(id));
+          for (const subGoalId of subGoalsToDelete) {
+            console.log(`Deleting removed sub-goal: ${subGoalId}`);
+            await GoalsService.delete(subGoalId);
+          }
+
+          // Save each sub-goal
+          for (const subGoal of goal.children) {
+            const subGoalData: Partial<Goal> = {
+              district_id: district.id,
+              title: subGoal.title!.trim(),
+              description: subGoal.description?.trim() || null,
+              indicator_text: subGoal.indicator_text || null,
+              indicator_color: subGoal.indicator_color || null,
+              show_progress_bar: subGoal.show_progress_bar !== false,
+              overall_progress: subGoal.overall_progress_override || subGoal.overall_progress || 0,
+              overall_progress_override: subGoal.overall_progress_override,
+              overall_progress_display_mode: subGoal.overall_progress_display_mode || 'percentage',
+              overall_progress_custom_value: subGoal.overall_progress_custom_value || null,
+              level: 2,
+              parent_id: savedGoal.id,
+            };
+
+            if (subGoal.id) {
+              console.log(`Updating existing sub-goal: ${subGoal.id}`);
+              await GoalsService.update(subGoal.id, subGoalData);
+            } else {
+              console.log(`Creating new sub-goal`);
+              await GoalsService.create(subGoalData);
+            }
+          }
         }
       }
 
@@ -1100,6 +1284,13 @@ export function ObjectiveBuilder() {
                         </div>
                         <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-all">
                           <button
+                            onClick={() => addSubGoal(idx)}
+                            className="flex-shrink-0 p-1 hover:bg-purple-50 rounded"
+                            title="Add Sub-Goal"
+                          >
+                            <Plus className="h-3.5 w-3.5 text-purple-600" />
+                          </button>
+                          <button
                             onClick={() => {
                               setCurrentGoalForMetric({
                                 idx,
@@ -1190,6 +1381,74 @@ export function ObjectiveBuilder() {
                                 </div>
                               </div>
                             ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sub-Goals List */}
+                      {goal.children && goal.children.length > 0 && (
+                        <div className="border-t border-border bg-purple-50/30 px-3 py-2">
+                          <div className="text-xs font-medium text-purple-700 mb-2">SUB-GOALS</div>
+                          <div className="space-y-1">
+                            {goal.children.map((subGoal, subIdx) => {
+                              const subGoalMetrics = subGoal.id ? goalMetrics[subGoal.id] || [] : [];
+                              return (
+                                <div
+                                  key={subIdx}
+                                  className="flex items-center justify-between p-2 bg-white rounded hover:bg-purple-50 transition-colors group/subgoal"
+                                >
+                                  <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                    <ChevronRight className="h-3 w-3 text-purple-400 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center space-x-2">
+                                        <span className="text-xs font-medium text-purple-700">
+                                          {subGoal.goal_number}
+                                        </span>
+                                        {subGoalMetrics.length > 0 && (
+                                          <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">
+                                            {subGoalMetrics.length}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground truncate">
+                                        {subGoal.title}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-1 opacity-0 group-hover/subgoal:opacity-100 transition-all">
+                                    <button
+                                      onClick={() => {
+                                        setCurrentGoalForMetric({
+                                          idx: subIdx,
+                                          id: subGoal.id || `temp-${idx}-${subIdx}`,
+                                          goal_number: subGoal.goal_number || `${goal.goal_number}.${subIdx + 1}`
+                                        });
+                                        setEditingMetric(null);
+                                        setShowMetricWizard(true);
+                                      }}
+                                      className="p-1 hover:bg-green-100 rounded"
+                                      title="Add Measure"
+                                    >
+                                      <BarChart3 className="h-3 w-3 text-green-600" />
+                                    </button>
+                                    <button
+                                      onClick={() => editSubGoal(idx, subIdx)}
+                                      className="p-1 hover:bg-blue-100 rounded"
+                                      title="Edit Sub-Goal"
+                                    >
+                                      <Edit2 className="h-3 w-3 text-blue-600" />
+                                    </button>
+                                    <button
+                                      onClick={() => removeSubGoal(idx, subIdx)}
+                                      className="p-1 hover:bg-red-100 rounded"
+                                      title="Remove Sub-Goal"
+                                    >
+                                      <Trash2 className="h-3 w-3 text-red-600" />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -1656,10 +1915,16 @@ export function ObjectiveBuilder() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold">
-                    {editingGoalIndex !== null ? 'Edit Goal' : 'Create New Goal'}
+                    {editingSubGoalParentIndex !== null
+                      ? (editingSubGoalIndex !== null ? 'Edit Sub-Goal' : 'Create New Sub-Goal')
+                      : (editingGoalIndex !== null ? 'Edit Goal' : 'Create New Goal')
+                    }
                   </h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Define the basic information for your goal
+                    {editingSubGoalParentIndex !== null
+                      ? 'Define the basic information for your sub-goal'
+                      : 'Define the basic information for your goal'
+                    }
                   </p>
                 </div>
                 <button
