@@ -33,6 +33,7 @@ export interface VisualizationOption {
   icon: LucideIcon;
   preview: string;
   dataFields: string[];
+  status: 'ready' | 'coming-soon'; // Indicates if the visualization is fully functional
 }
 
 export const visualizationOptions: VisualizationOption[] = [
@@ -42,7 +43,8 @@ export const visualizationOptions: VisualizationOption[] = [
     description: 'Show a percentage with optional target and progress bar',
     icon: Percent,
     preview: '/previews/percentage.svg',
-    dataFields: ['currentValue', 'targetValue', 'label', 'showProgressBar']
+    dataFields: ['currentValue', 'targetValue', 'label', 'showProgressBar'],
+    status: 'coming-soon'
   },
   {
     id: 'number',
@@ -50,7 +52,8 @@ export const visualizationOptions: VisualizationOption[] = [
     description: 'Display a key number or metric with trend indicator',
     icon: Hash,
     preview: '/previews/number.svg',
-    dataFields: ['currentValue', 'targetValue', 'unit', 'showTrend', 'previousValue']
+    dataFields: ['currentValue', 'targetValue', 'unit', 'showTrend', 'previousValue'],
+    status: 'ready'
   },
   {
     id: 'bar-chart',
@@ -58,7 +61,8 @@ export const visualizationOptions: VisualizationOption[] = [
     description: 'Compare values across categories or time periods',
     icon: BarChart3,
     preview: '/previews/bar-chart.svg',
-    dataFields: ['dataPoints', 'xAxisLabel', 'yAxisLabel', 'showLegend']
+    dataFields: ['dataPoints', 'xAxisLabel', 'yAxisLabel', 'showLegend'],
+    status: 'coming-soon'
   },
   {
     id: 'line-chart',
@@ -66,7 +70,8 @@ export const visualizationOptions: VisualizationOption[] = [
     description: 'Show trends and changes over time',
     icon: LineChart,
     preview: '/previews/line-chart.svg',
-    dataFields: ['dataPoints', 'xAxisLabel', 'yAxisLabel', 'showArea']
+    dataFields: ['dataPoints', 'xAxisLabel', 'yAxisLabel', 'showArea'],
+    status: 'coming-soon'
   },
   {
     id: 'donut-chart',
@@ -74,7 +79,8 @@ export const visualizationOptions: VisualizationOption[] = [
     description: 'Display proportions and percentages of a whole',
     icon: PieChart,
     preview: '/previews/donut-chart.svg',
-    dataFields: ['categories', 'centerLabel', 'showLegend', 'colors']
+    dataFields: ['categories', 'centerLabel', 'showLegend', 'colors'],
+    status: 'coming-soon'
   },
   {
     id: 'gauge',
@@ -82,7 +88,8 @@ export const visualizationOptions: VisualizationOption[] = [
     description: 'Show performance against a scale or range',
     icon: Gauge,
     preview: '/previews/gauge.svg',
-    dataFields: ['currentValue', 'minValue', 'maxValue', 'segments', 'unit']
+    dataFields: ['currentValue', 'minValue', 'maxValue', 'segments', 'unit'],
+    status: 'coming-soon'
   },
   {
     id: 'survey',
@@ -90,7 +97,8 @@ export const visualizationOptions: VisualizationOption[] = [
     description: 'Display survey data with multiple sources and trends',
     icon: Activity,
     preview: '/previews/survey.svg',
-    dataFields: ['surveyData', 'scale', 'sources', 'narrative']
+    dataFields: ['surveyData', 'scale', 'sources', 'narrative'],
+    status: 'coming-soon'
   },
   {
     id: 'status',
@@ -98,7 +106,8 @@ export const visualizationOptions: VisualizationOption[] = [
     description: 'Simple status card with color coding',
     icon: CheckCircle2,
     preview: '/previews/status.svg',
-    dataFields: ['status', 'label', 'description', 'lastUpdated']
+    dataFields: ['status', 'label', 'description', 'lastUpdated'],
+    status: 'coming-soon'
   },
   {
     id: 'likert-scale',
@@ -106,7 +115,8 @@ export const visualizationOptions: VisualizationOption[] = [
     description: 'Track survey responses on rating scales (1-5, 1-7, etc.)',
     icon: SlidersHorizontal,
     preview: '/previews/likert-scale.svg',
-    dataFields: ['scaleMin', 'scaleMax', 'dataPoints', 'scaleLabel', 'targetValue']
+    dataFields: ['scaleMin', 'scaleMax', 'dataPoints', 'scaleLabel', 'targetValue'],
+    status: 'ready'
   }
 ];
 

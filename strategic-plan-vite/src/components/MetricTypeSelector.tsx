@@ -21,6 +21,8 @@ export function MetricTypeSelector({ selectedType, onSelect }: MetricTypeSelecto
         {visualizationOptions.map((option) => {
           const Icon = option.icon;
           const isSelected = selectedType === option.id;
+          const isReady = option.status === 'ready';
+          const isComingSoon = option.status === 'coming-soon';
 
           return (
             <div
@@ -30,13 +32,27 @@ export function MetricTypeSelector({ selectedType, onSelect }: MetricTypeSelecto
                 border-2 rounded-lg
                 ${isSelected
                   ? 'border-blue-500 bg-blue-50'
+                  : isComingSoon
+                  ? 'border-border hover:border-gray-300 opacity-60'
                   : 'border-border hover:border-gray-300'}
               `}
               onClick={() => onSelect(option.id)}
             >
+              {/* Status Badge */}
+              {isReady && !isSelected && (
+                <div className="absolute top-2 right-2 px-2 py-0.5 bg-green-500 text-white text-[10px] font-semibold rounded">
+                  Ready
+                </div>
+              )}
+              {isComingSoon && !isSelected && (
+                <div className="absolute top-2 right-2 px-2 py-0.5 bg-amber-500 text-white text-[10px] font-semibold rounded">
+                  Soon
+                </div>
+              )}
+
               {/* Selection indicator */}
               {isSelected && (
-                <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center z-10">
                   <Check className="w-4 h-4 text-white" />
                 </div>
               )}

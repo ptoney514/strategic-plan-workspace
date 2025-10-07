@@ -530,34 +530,25 @@ export function DistrictDashboard() {
                               {/* Sub-goals section */}
                               {child.children && child.children.length > 0 && (
                                 <div className="space-y-3 pt-4">
-                                  {child.children.map((subGoal: any, subIndex: number) => {
+                                  {child.children.map((subGoal: any) => {
                                     const isSubExpanded = expandedSubGoalId === subGoal.id;
                                     const subGoalProgress = subGoal.overall_progress_override ?? subGoal.overall_progress ?? 0;
 
-                                    // Mock data for Level 2 sub-goals
-                                    const mockSubGoalChart = subIndex === 0 ? [
-                                      { year: '2021', value: 40, target: 50 },
-                                      { year: '2022', value: 48, target: 50 },
-                                      { year: '2023', value: 49, target: 50 },
-                                      { year: '2024', value: 52, target: 50 }
-                                    ] : subIndex === 1 ? [
-                                      { year: '2021', value: 65, target: 70 },
-                                      { year: '2022', value: 68, target: 70 },
-                                      { year: '2023', value: 71, target: 70 },
-                                      { year: '2024', value: 73, target: 70 }
-                                    ] : null;
+                                    // Get real metrics for this sub-goal
+                                    const subGoalMetrics = metrics?.filter(m => m.goal_id === subGoal.id) || [];
+                                    const primarySubMetric = subGoalMetrics.find(m => m.is_primary) || subGoalMetrics[0];
 
-                                    const subGoalTitle = subIndex === 0
-                                      ? "Enrollment Data - Secondary Data Source"
-                                      : subIndex === 1
-                                      ? "Student Retention Rates"
-                                      : "Progress Tracking";
+                                    // Convert metric visualization_config.dataPoints to chart data format
+                                    const subDataPoints = primarySubMetric?.visualization_config?.dataPoints ||
+                                                         primarySubMetric?.data_points;
 
-                                    const subGoalDescription = subIndex === 0
-                                      ? "Proportional enrollment of non-white students tracked year over year."
-                                      : subIndex === 1
-                                      ? "Year-over-year student retention and completion rates."
-                                      : "Additional metrics and progress indicators.";
+                                    const subChartData = subDataPoints && Array.isArray(subDataPoints) ?
+                                      subDataPoints.map((dp: any) => ({
+                                        year: dp.period || dp.date || dp.label || '',
+                                        value: Number(dp.value) || 0,
+                                        target: Number(dp.target || primarySubMetric?.target_value) || undefined
+                                      })).filter(d => d.year) // Only include entries with a year/date
+                                      : null;
 
                                     return (
                                       <div key={subGoal.id} className="bg-white border border-neutral-300 rounded-lg overflow-hidden">
@@ -570,35 +561,45 @@ export function DistrictDashboard() {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                               <h5 className="text-lg font-semibold text-neutral-900">{subGoal.title}</h5>
-                                              {subGoal.description && !isSubExpanded && (
+                                              {subGoal.description && (
                                                 <p className="text-xs text-neutral-600 mt-1">{subGoal.description}</p>
                                               )}
                                             </div>
                                           </div>
 
-                                          {/* Performance Indicator for Sub-goal - Only show if enabled */}
+                                          {/* Performance Indicator for Sub-goal - Only show if enabled, no click action */}
                                           {subGoal.show_progress_bar !== false && (
                                             <PerformanceIndicator
                                               progress={subGoalProgress}
                                               displayMode={subGoal.overall_progress_display_mode || 'percentage'}
                                               customValue={subGoal.overall_progress_custom_value}
                                               showLabels={false}
-                                              onClick={() => {
-                                                setExpandedSubGoalId(isSubExpanded ? null : subGoal.id);
-                                              }}
                                             />
                                           )}
                                         </div>
 
-                                        {/* Expanded Sub-goal Detail */}
-                                        {isSubExpanded && mockSubGoalChart && (
+                                        {/* Metric Visualization - Always show if metrics exist */}
+                                        {primarySubMetric && (subChartData && subChartData.length > 0) && (
                                           <div className="border-t border-neutral-300 p-4 bg-neutral-100">
-                                            <AnnualProgressChart
-                                              data={mockSubGoalChart}
-                                              title={subGoalTitle}
-                                              description={subGoalDescription}
-                                              unit="%"
-                                            />
+                                            {primarySubMetric.visualization_type === 'likert-scale' ? (
+                                              <LikertScaleChart
+                                                data={subChartData}
+                                                title={primarySubMetric.metric_name || "Survey Results"}
+                                                description={primarySubMetric.description}
+                                                scaleMin={primarySubMetric.visualization_config?.scaleMin || 1}
+                                                scaleMax={primarySubMetric.visualization_config?.scaleMax || 5}
+                                                scaleLabel={primarySubMetric.visualization_config?.scaleLabel || '(5 high)'}
+                                                targetValue={primarySubMetric.target_value || primarySubMetric.visualization_config?.targetValue}
+                                                showAverage={true}
+                                              />
+                                            ) : (
+                                              <AnnualProgressChart
+                                                data={subChartData}
+                                                title={primarySubMetric?.metric_name || "Annual Progress"}
+                                                description={primarySubMetric?.description || "Year-over-year progress tracking"}
+                                                unit={primarySubMetric?.unit || ""}
+                                              />
+                                            )}
                                           </div>
                                         )}
                                       </div>
