@@ -18,7 +18,29 @@ export class GoalsService {
       throw error;
     }
 
-    return buildGoalHierarchy(goals || []);
+    console.log('[GoalsService] Raw goals from DB:', goals?.map(g => ({
+      goal_number: g.goal_number,
+      id: g.id,
+      metrics_count: g.metrics?.length || 0,
+      level: g.level
+    })));
+
+    const hierarchy = buildGoalHierarchy(goals || []);
+
+    console.log('[GoalsService] After buildGoalHierarchy:', hierarchy.map(g => ({
+      goal_number: g.goal_number,
+      metrics_count: g.metrics?.length || 0,
+      children: g.children?.map(c => ({
+        goal_number: c.goal_number,
+        metrics_count: c.metrics?.length || 0,
+        children: c.children?.map(gc => ({
+          goal_number: gc.goal_number,
+          metrics_count: gc.metrics?.length || 0
+        }))
+      }))
+    })));
+
+    return hierarchy;
   }
 
   static async getById(id: string): Promise<Goal | null> {

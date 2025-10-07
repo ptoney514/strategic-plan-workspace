@@ -38,10 +38,41 @@ export function DistrictDashboard() {
 
   // Debug logging (development only)
   useEffect(() => {
-    if (import.meta.env.DEV && metrics) {
-      console.log('[DistrictDashboard] Loaded metrics:', metrics.length);
+    if (import.meta.env.DEV) {
+      if (metrics) {
+        console.log('[DistrictDashboard] Loaded metrics:', metrics.length, metrics);
+      }
+      if (goals) {
+        console.log('[DistrictDashboard] Loaded goals:', goals.length);
+        goals.forEach(g => {
+          console.log(`Goal ${g.goal_number} (level ${g.level}):`, {
+            id: g.id,
+            title: g.title,
+            metrics_count: g.metrics?.length || 0,
+            metrics: g.metrics,
+            children_count: g.children?.length || 0
+          });
+          g.children?.forEach(c => {
+            console.log(`  Child ${c.goal_number} (level ${c.level}):`, {
+              id: c.id,
+              title: c.title,
+              metrics_count: c.metrics?.length || 0,
+              metrics: c.metrics,
+              children_count: c.children?.length || 0
+            });
+            c.children?.forEach(gc => {
+              console.log(`    Grandchild ${gc.goal_number} (level ${gc.level}):`, {
+                id: gc.id,
+                title: gc.title,
+                metrics_count: gc.metrics?.length || 0,
+                metrics: gc.metrics
+              });
+            });
+          });
+        });
+      }
     }
-  }, [metrics]);
+  }, [metrics, goals]);
 
   const isLoading = districtLoading || goalsLoading || metricsLoading;
 
@@ -579,27 +610,43 @@ export function DistrictDashboard() {
                                         </div>
 
                                         {/* Metric Visualization - Always show if metrics exist */}
-                                        {primarySubMetric && (subChartData && subChartData.length > 0) && (
+                                        {primarySubMetric && (
                                           <div className="border-t border-neutral-300 p-4 bg-neutral-100">
-                                            {primarySubMetric.visualization_type === 'likert-scale' ? (
-                                              <LikertScaleChart
-                                                data={subChartData}
-                                                title={primarySubMetric.metric_name || "Survey Results"}
-                                                description={primarySubMetric.description}
-                                                scaleMin={primarySubMetric.visualization_config?.scaleMin || 1}
-                                                scaleMax={primarySubMetric.visualization_config?.scaleMax || 5}
-                                                scaleLabel={primarySubMetric.visualization_config?.scaleLabel || '(5 high)'}
-                                                targetValue={primarySubMetric.target_value || primarySubMetric.visualization_config?.targetValue}
-                                                showAverage={true}
-                                              />
-                                            ) : (
-                                              <AnnualProgressChart
-                                                data={subChartData}
-                                                title={primarySubMetric?.metric_name || "Annual Progress"}
-                                                description={primarySubMetric?.description || "Year-over-year progress tracking"}
-                                                unit={primarySubMetric?.unit || ""}
-                                              />
-                                            )}
+                                            {primarySubMetric.visualization_type === 'number' ? (
+                                              <div className="text-center py-6">
+                                                <div className="text-sm text-neutral-600 mb-2">
+                                                  {primarySubMetric.visualization_config?.label || primarySubMetric.metric_name}
+                                                </div>
+                                                <div className="text-4xl font-bold text-neutral-900">
+                                                  {primarySubMetric.visualization_config?.currentValue || 0}
+                                                </div>
+                                                {primarySubMetric.unit && (
+                                                  <div className="text-sm text-neutral-500 mt-1">
+                                                    {primarySubMetric.unit}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            ) : (subChartData && subChartData.length > 0) ? (
+                                              primarySubMetric.visualization_type === 'likert-scale' ? (
+                                                <LikertScaleChart
+                                                  data={subChartData}
+                                                  title={primarySubMetric.metric_name || "Survey Results"}
+                                                  description={primarySubMetric.description}
+                                                  scaleMin={primarySubMetric.visualization_config?.scaleMin || 1}
+                                                  scaleMax={primarySubMetric.visualization_config?.scaleMax || 5}
+                                                  scaleLabel={primarySubMetric.visualization_config?.scaleLabel || '(5 high)'}
+                                                  targetValue={primarySubMetric.target_value || primarySubMetric.visualization_config?.targetValue}
+                                                  showAverage={true}
+                                                />
+                                              ) : (
+                                                <AnnualProgressChart
+                                                  data={subChartData}
+                                                  title={primarySubMetric?.metric_name || "Annual Progress"}
+                                                  description={primarySubMetric?.description || "Year-over-year progress tracking"}
+                                                  unit={primarySubMetric?.unit || ""}
+                                                />
+                                              )
+                                            ) : null}
                                           </div>
                                         )}
                                       </div>
