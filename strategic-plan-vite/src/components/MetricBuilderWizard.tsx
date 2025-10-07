@@ -104,6 +104,17 @@ export function MetricBuilderWizard({
     }
 
     if (currentStep === 'data') {
+      if (selectedType === 'number') {
+        if (!metricData.label || metricData.label.trim() === '') {
+          alert('Please enter a title/summary for your number/KPI metric');
+          return;
+        }
+        const currentVal = metricData.currentValue;
+        if (currentVal === '' || currentVal === undefined || currentVal === null) {
+          alert('Please enter a current value');
+          return;
+        }
+      }
       if (selectedType === 'percentage') {
         const currentVal = metricData.currentValue;
         if (currentVal === '' || currentVal === undefined || currentVal === null) {
@@ -288,6 +299,7 @@ export function MetricBuilderWizard({
                 Now let's add the data for your {selectedType?.replace('-', ' ')}
               </h3>
               <p className="text-muted-foreground">
+                {selectedType === 'number' && 'Enter a descriptive title and the numeric value to display'}
                 {selectedType === 'percentage' && 'Enter the current percentage value'}
                 {selectedType === 'bar-chart' && 'Add categories and their values for your bar chart'}
                 {selectedType === 'line-chart' && 'Add data points for your line chart over time'}

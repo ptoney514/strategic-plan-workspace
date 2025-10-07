@@ -37,6 +37,104 @@ export function MetricDataForm({ type, data, onChange }: MetricDataFormProps) {
 
   const renderFormFields = () => {
     switch (type) {
+      case 'number':
+        return (
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 text-blue-600 mt-0.5" />
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium">Display key numbers and KPIs!</p>
+                  <p>Show important metrics like counts, percentages, or any numeric value with optional units.</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Title/Summary *</label>
+              <input
+                type="text"
+                value={data.label || ''}
+                onChange={(e) => updateField('label', e.target.value)}
+                placeholder="e.g., % of non-white students"
+                className="w-full px-3 py-2 border border-border rounded-md"
+              />
+              <p className="text-xs text-muted-foreground mt-1">This appears before the value</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Current Value *</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={data.currentValue ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                      updateField('currentValue', val);
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const val = e.target.value;
+                    updateField('currentValue', val === '' ? 0 : parseFloat(val) || 0);
+                  }}
+                  placeholder="32.49"
+                  className="w-full px-3 py-2 border border-border rounded-md"
+                />
+                <p className="text-xs text-muted-foreground mt-1">The main number to display</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Unit (optional)</label>
+                <input
+                  type="text"
+                  value={data.unit || ''}
+                  onChange={(e) => updateField('unit', e.target.value)}
+                  placeholder="e.g., %, count, students"
+                  className="w-full px-3 py-2 border border-border rounded-md"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Appears after the value</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Target Value (optional)</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={data.targetValue ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                      updateField('targetValue', val);
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const val = e.target.value;
+                    updateField('targetValue', val === '' ? undefined : parseFloat(val) || undefined);
+                  }}
+                  placeholder="Target goal"
+                  className="w-full px-3 py-2 border border-border rounded-md"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Optional goal to show</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Decimal Places</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="4"
+                  value={data.decimals ?? 2}
+                  onChange={(e) => updateField('decimals', parseInt(e.target.value))}
+                  className="w-full px-3 py-2 border border-border rounded-md"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Number of decimals to show</p>
+              </div>
+            </div>
+          </div>
+        );
+
       case 'percentage':
         return (
           <div className="space-y-4">

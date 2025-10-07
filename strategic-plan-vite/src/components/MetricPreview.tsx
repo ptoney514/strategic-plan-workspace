@@ -29,6 +29,41 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 export function MetricPreview({ type, data }: MetricPreviewProps) {
   const renderPreview = () => {
     switch (type) {
+      case 'number':
+        const decimals = data.decimals ?? 2;
+        const formattedValue = typeof data.currentValue === 'number'
+          ? data.currentValue.toFixed(decimals)
+          : data.currentValue || '0';
+        const valueWithUnit = data.unit
+          ? `${formattedValue}${data.unit}`
+          : formattedValue;
+        const fullDisplay = data.label
+          ? `${data.label} - ${valueWithUnit}`
+          : valueWithUnit;
+
+        return (
+          <div className="bg-white rounded-lg border border-border p-6">
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <h3 className="text-lg font-medium mb-2">Number/KPI Display</h3>
+                  <div className="space-y-1">
+                    <p className="text-2xl font-bold">{fullDisplay}</p>
+                    {data.targetValue && (
+                      <p className="text-sm text-muted-foreground">
+                        Target: {data.targetValue.toFixed(decimals)}{data.unit || ''}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {data.showTrend && data.targetValue && data.currentValue >= data.targetValue && (
+                  <TrendingUp className="w-6 h-6 text-green-500" />
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
       case 'percentage':
         return (
           <div className="bg-white rounded-lg border border-border p-6">
