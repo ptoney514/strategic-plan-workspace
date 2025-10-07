@@ -26,6 +26,13 @@ export function GoalDetailPanel({ goal, districtSlug, onRefresh }: GoalDetailPan
 
   useEffect(() => {
     if (goal) {
+      console.log('[GoalDetailPanel] Selected goal:', {
+        id: goal.id,
+        goal_number: goal.goal_number,
+        title: goal.title,
+        level: goal.level,
+        metrics_count: goal.metrics?.length || 0
+      });
       setTitle(goal.title || '');
       setDescription(goal.description || '');
       setIndicatorText(goal.indicator_text || '');

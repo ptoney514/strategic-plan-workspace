@@ -20,6 +20,7 @@ export function MetricsSection({ goalId, metrics, onRefresh }: MetricsSectionPro
   const deleteMetricMutation = useDeleteMetric();
 
   const handleAddMetric = () => {
+    console.log('[MetricsSection] Opening wizard for goalId:', goalId);
     setEditingMetric(null);
     setShowWizard(true);
   };
