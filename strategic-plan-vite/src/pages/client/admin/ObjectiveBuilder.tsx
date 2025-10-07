@@ -226,6 +226,7 @@ export function ObjectiveBuilder() {
 
     // Check if we're editing from within the goal modal
     if (showGoalModal) {
+      console.log('Saving progress display mode from goal modal:', propertyValue);
       // Update goalForm instead of builderState
       if (editingProperty === 'progress_display') {
         setGoalForm(prev => ({
@@ -1425,8 +1426,8 @@ export function ObjectiveBuilder() {
 
       {/* Property Edit Modal */}
       {editingProperty && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 border-2 border-primary">
             <div className="p-6">
               <h3 className="text-lg font-semibold mb-4">
                 {editingProperty === 'title' && 'Add Objective Title'}
@@ -1797,6 +1798,7 @@ export function ObjectiveBuilder() {
                           <button
                             type="button"
                             onClick={() => {
+                              console.log('Opening progress display config for goal:', goalForm.title, 'Current mode:', goalForm.overall_progress_display_mode);
                               setEditingProperty('progress_display');
                               setPropertyValue(goalForm.overall_progress_display_mode);
                             }}

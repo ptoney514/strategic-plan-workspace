@@ -1,4 +1,8 @@
-import { getProgressQualitativeLabel, getProgressColor } from '../lib/types';
+import {
+  getProgressQualitativeLabel,
+  getProgressColor,
+  getProgressScoreOutOf5
+} from '../lib/types';
 
 interface PerformanceIndicatorProps {
   progress: number;
@@ -46,7 +50,7 @@ export function PerformanceIndicator({
             className="text-sm font-bold"
             style={{ color }}
           >
-            {((progress / 100) * 5).toFixed(1)}/5
+            {getProgressScoreOutOf5(progress)}/5.00
           </span>
         )}
         {displayMode === 'custom' && (

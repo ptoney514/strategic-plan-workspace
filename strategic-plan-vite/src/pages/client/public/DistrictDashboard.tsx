@@ -20,7 +20,11 @@ import { AnnualProgressChart } from '../../../components/AnnualProgressChart';
 import { LikertScaleChart } from '../../../components/LikertScaleChart';
 import { GoalNarrativeDetail } from '../../../components/GoalNarrativeDetail';
 import type { Goal, TimeSeriesDataPoint } from '../../../lib/types';
-import { getProgressColor } from '../../../lib/types';
+import {
+  getProgressColor,
+  getProgressQualitativeLabel,
+  getProgressScoreOutOf5
+} from '../../../lib/types';
 
 export function DistrictDashboard() {
   const { slug } = useParams<{ slug: string }>();
@@ -112,6 +116,29 @@ export function DistrictDashboard() {
               const subGoalsCount = goal.children?.length || 0;
               const progress = goal.overall_progress_override ?? goal.overall_progress ?? 0;
               const progressColor = getProgressColor(progress);
+              const displayMode = goal.overall_progress_display_mode || 'percentage';
+
+              // Render progress label based on display mode
+              const renderProgressLabel = () => {
+                switch (displayMode) {
+                  case 'percentage':
+                    return `${Math.round(progress)}%`;
+                  case 'qualitative':
+                    return getProgressQualitativeLabel(progress);
+                  case 'score':
+                    return `${getProgressScoreOutOf5(progress)}/5.00`;
+                  case 'custom':
+                    return goal.overall_progress_custom_value || `${Math.round(progress)}%`;
+                  case 'color-only':
+                    return null; // No label for color-only mode
+                  case 'hidden':
+                    return null;
+                  default:
+                    return `${Math.round(progress)}%`;
+                }
+              };
+
+              const progressLabel = renderProgressLabel();
 
               return (
                 <article
@@ -178,8 +205,8 @@ export function DistrictDashboard() {
                       </div>
                     )}
 
-                    {/* Progress Bar - Only show if enabled */}
-                    {goal.show_progress_bar !== false && (
+                    {/* Progress Bar - Only show if enabled and not hidden mode */}
+                    {goal.show_progress_bar !== false && displayMode !== 'hidden' && (
                       <div className="mt-5">
                         <div className="relative">
                           <div className="w-full bg-secondary rounded-full h-3 overflow-hidden shadow-inner">
@@ -195,17 +222,20 @@ export function DistrictDashboard() {
                             </div>
                           </div>
                         </div>
-                        <div className="mt-2 text-right">
-                          <span
-                            className="text-sm font-bold"
-                            style={{
-                              color: progressColor,
-                              textShadow: `0 1px 2px ${progressColor}20`
-                            }}
-                          >
-                            {Math.round(progress)}%
-                          </span>
-                        </div>
+                        {/* Show label if not color-only mode */}
+                        {progressLabel && (
+                          <div className="mt-2 text-right">
+                            <span
+                              className="text-sm font-bold"
+                              style={{
+                                color: progressColor,
+                                textShadow: `0 1px 2px ${progressColor}20`
+                              }}
+                            >
+                              {progressLabel}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
                     {/* Spacer to maintain uniform card height when progress bar is hidden */}
