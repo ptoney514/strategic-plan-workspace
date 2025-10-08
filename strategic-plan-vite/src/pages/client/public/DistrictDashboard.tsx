@@ -453,9 +453,9 @@ export function DistrictDashboard() {
                     const childProgress = child.overall_progress_override ?? child.overall_progress ?? 0;
                     const isExpanded = expandedGoalId === child.id;
 
-                    // Get real metrics for this goal
+                    // Get real metrics for this goal (only one metric per goal)
                     const goalMetrics = metrics?.filter(m => m.goal_id === child.id) || [];
-                    const primaryMetric = goalMetrics.find(m => m.is_primary) || goalMetrics[0];
+                    const primaryMetric = goalMetrics[0]; // Only one metric per goal now
 
                     // Convert metric visualization_config.dataPoints to chart data format
                     const dataPoints = primaryMetric?.visualization_config?.dataPoints ||
@@ -565,9 +565,9 @@ export function DistrictDashboard() {
                                     const isSubExpanded = expandedSubGoalId === subGoal.id;
                                     const subGoalProgress = subGoal.overall_progress_override ?? subGoal.overall_progress ?? 0;
 
-                                    // Get real metrics for this sub-goal
+                                    // Get real metrics for this sub-goal (only one metric per goal)
                                     const subGoalMetrics = metrics?.filter(m => m.goal_id === subGoal.id) || [];
-                                    const primarySubMetric = subGoalMetrics.find(m => m.is_primary) || subGoalMetrics[0];
+                                    const primarySubMetric = subGoalMetrics[0]; // Only one metric per goal now
 
                                     // Debug logging
                                     if (subGoal.goal_number === '1.1.1') {
@@ -619,79 +619,79 @@ export function DistrictDashboard() {
                                           )}
                                         </div>
 
-                                        {/* Metric Visualizations - Show all metrics with proper card styling */}
-                                        {subGoalMetrics.length > 0 && subGoalMetrics.map((metric: any) => {
+                                        {/* Metric Visualization - Show single metric with proper card styling */}
+                                        {primarySubMetric && (() => {
                                           // Prepare chart data if needed
-                                          const metricDataPoints = metric.visualization_config?.dataPoints || metric.data_points;
+                                          const metricDataPoints = primarySubMetric.visualization_config?.dataPoints || primarySubMetric.data_points;
                                           const metricChartData = metricDataPoints && Array.isArray(metricDataPoints) ?
                                             metricDataPoints.map((dp: any) => ({
                                               year: dp.period || dp.date || dp.label || '',
                                               value: Number(dp.value) || 0,
-                                              target: Number(dp.target || metric.target_value) || undefined
+                                              target: Number(dp.target || primarySubMetric.target_value) || undefined
                                             })).filter(d => d.year) : null;
 
                                           return (
-                                            <div key={metric.id} className="border-t border-neutral-300">
-                                              {metric.visualization_type === 'number' ? (
+                                            <div className="border-t border-neutral-300">
+                                              {primarySubMetric.visualization_type === 'number' ? (
                                                 <div className="p-6 bg-white">
                                                   <div className="text-center">
                                                     <div className="text-sm font-medium text-neutral-600 mb-2">
-                                                      {metric.metric_name}
+                                                      {primarySubMetric.metric_name}
                                                     </div>
                                                     <div className="text-5xl font-bold text-neutral-900 mb-1">
-                                                      {metric.visualization_config?.currentValue || 0}
+                                                      {primarySubMetric.visualization_config?.currentValue || 0}
                                                     </div>
-                                                    {metric.visualization_config?.label && (
+                                                    {primarySubMetric.visualization_config?.label && (
                                                       <div className="text-base text-neutral-600 mt-2">
-                                                        {metric.visualization_config.label}
+                                                        {primarySubMetric.visualization_config.label}
                                                       </div>
                                                     )}
-                                                    {metric.visualization_config?.targetValue && (
+                                                    {primarySubMetric.visualization_config?.targetValue && (
                                                       <div className="text-sm text-neutral-500 mt-2">
-                                                        Target: {metric.visualization_config.targetValue}
+                                                        Target: {primarySubMetric.visualization_config.targetValue}
                                                       </div>
                                                     )}
                                                   </div>
                                                 </div>
-                                              ) : metric.visualization_type === 'ratio' ? (
+                                              ) : primarySubMetric.visualization_type === 'ratio' ? (
                                                 <div className="p-6 bg-white">
                                                   <div className="text-center">
                                                     <div className="text-xl font-bold text-neutral-900 leading-relaxed">
-                                                      {metric.visualization_config?.label || ''}{metric.visualization_config?.ratioValue || '1.0:1'}
+                                                      {primarySubMetric.visualization_config?.label || ''}{primarySubMetric.visualization_config?.ratioValue || '1.0:1'}
                                                     </div>
-                                                    {metric.visualization_config?.showTarget && metric.visualization_config?.targetValue && (
+                                                    {primarySubMetric.visualization_config?.showTarget && primarySubMetric.visualization_config?.targetValue && (
                                                       <div className="text-sm text-neutral-500 mt-3">
-                                                        Target: {metric.visualization_config.label}{metric.visualization_config.targetValue}
+                                                        Target: {primarySubMetric.visualization_config.label}{primarySubMetric.visualization_config.targetValue}
                                                       </div>
                                                     )}
                                                   </div>
                                                 </div>
                                               ) : (metricChartData && metricChartData.length > 0) ? (
                                                 <div className="p-5 bg-neutral-50">
-                                                  {metric.visualization_type === 'likert-scale' ? (
+                                                  {primarySubMetric.visualization_type === 'likert-scale' ? (
                                                     <LikertScaleChart
                                                       data={metricChartData}
-                                                      title={metric.metric_name || "Survey Results"}
-                                                      description={metric.description}
-                                                      scaleMin={metric.visualization_config?.scaleMin || 1}
-                                                      scaleMax={metric.visualization_config?.scaleMax || 5}
-                                                      scaleLabel={metric.visualization_config?.scaleLabel || '(5 high)'}
-                                                      targetValue={metric.target_value || metric.visualization_config?.targetValue}
+                                                      title={primarySubMetric.metric_name || "Survey Results"}
+                                                      description={primarySubMetric.description}
+                                                      scaleMin={primarySubMetric.visualization_config?.scaleMin || 1}
+                                                      scaleMax={primarySubMetric.visualization_config?.scaleMax || 5}
+                                                      scaleLabel={primarySubMetric.visualization_config?.scaleLabel || '(5 high)'}
+                                                      targetValue={primarySubMetric.target_value || primarySubMetric.visualization_config?.targetValue}
                                                       showAverage={true}
                                                     />
                                                   ) : (
                                                     <AnnualProgressChart
                                                       data={metricChartData}
-                                                      title={metric.metric_name || "Annual Progress"}
-                                                      description={metric.description || "Year-over-year progress tracking"}
-                                                      unit={metric.unit || ""}
+                                                      title={primarySubMetric.metric_name || "Annual Progress"}
+                                                      description={primarySubMetric.description || "Year-over-year progress tracking"}
+                                                      unit={primarySubMetric.unit || ""}
                                                     />
                                                   )}
                                                 </div>
                                               ) : null}
                                             </div>
                                           );
-                                        })}
+                                        })()}
                                       </div>
                                     );
                                   })}

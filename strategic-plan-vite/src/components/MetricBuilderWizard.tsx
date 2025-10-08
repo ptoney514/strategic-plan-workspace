@@ -52,8 +52,7 @@ export function MetricBuilderWizard({
   const [metricData, setMetricData] = useState<any>({});
   const [metricDetails, setMetricDetails] = useState({
     name: '',
-    description: '',
-    is_primary: false
+    description: ''
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -66,8 +65,7 @@ export function MetricBuilderWizard({
       setMetricData(existingMetric.visualization_config || getDefaultConfig('bar-chart'));
       setMetricDetails({
         name: existingMetric.metric_name || existingMetric.name || '',
-        description: existingMetric.description || '',
-        is_primary: false
+        description: existingMetric.description || ''
       });
       setCurrentStep('title');
     } else if (isOpen) {
@@ -76,8 +74,7 @@ export function MetricBuilderWizard({
       setMetricData({});
       setMetricDetails({
         name: '',
-        description: '',
-        is_primary: false
+        description: ''
       });
     }
   }, [existingMetric, isOpen]);
@@ -196,8 +193,7 @@ export function MetricBuilderWizard({
         frequency: 'yearly' as const,
         aggregation_method: 'latest' as const,
         data_source: 'survey' as const,
-        metric_type: selectedType === 'percentage' ? 'percent' : 'number' as const,
-        is_primary: metricDetails.is_primary || false
+        metric_type: selectedType === 'percentage' ? 'percent' : 'number' as const
       };
 
       console.log('[MetricBuilderWizard] Saving metric:', existingMetric ? 'UPDATE' : 'CREATE', metric);
