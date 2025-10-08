@@ -135,6 +135,71 @@ export function MetricDataForm({ type, data, onChange }: MetricDataFormProps) {
           </div>
         );
 
+      case 'ratio':
+        return (
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 text-blue-600 mt-0.5" />
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium">Display ratio values!</p>
+                  <p>Perfect for risk ratios, comparisons, or any metric expressed as a ratio (e.g., 2.6:1).</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Descriptive Text *</label>
+              <input
+                type="text"
+                value={data.label || ''}
+                onChange={(e) => updateField('label', e.target.value)}
+                placeholder="e.g., Risk Ratio for OSS/Expulsion - Black/African American Students is "
+                className="w-full px-3 py-2 border border-border rounded-md"
+              />
+              <p className="text-xs text-muted-foreground mt-1">This text appears before the ratio value</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Ratio Value *</label>
+              <input
+                type="text"
+                value={data.ratioValue || ''}
+                onChange={(e) => updateField('ratioValue', e.target.value)}
+                placeholder="e.g., 2.6:1 or 0.7:1"
+                className="w-full px-3 py-2 border border-border rounded-md"
+              />
+              <p className="text-xs text-muted-foreground mt-1">The ratio in format like "2.6:1"</p>
+            </div>
+
+            <div className="border-t pt-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={data.showTarget || false}
+                  onChange={(e) => updateField('showTarget', e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm font-medium">Show target ratio</span>
+              </label>
+            </div>
+
+            {data.showTarget && (
+              <div>
+                <label className="block text-sm font-medium mb-1">Target Ratio (optional)</label>
+                <input
+                  type="text"
+                  value={data.targetValue || ''}
+                  onChange={(e) => updateField('targetValue', e.target.value)}
+                  placeholder="e.g., 1.0:1"
+                  className="w-full px-3 py-2 border border-border rounded-md"
+                />
+                <p className="text-xs text-muted-foreground mt-1">The goal ratio you're aiming for</p>
+              </div>
+            )}
+          </div>
+        );
+
       case 'percentage':
         return (
           <div className="space-y-4">

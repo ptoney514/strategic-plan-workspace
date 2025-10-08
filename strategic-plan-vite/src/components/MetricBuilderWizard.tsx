@@ -115,6 +115,16 @@ export function MetricBuilderWizard({
           return;
         }
       }
+      if (selectedType === 'ratio') {
+        if (!metricData.label || metricData.label.trim() === '') {
+          alert('Please enter descriptive text for your ratio metric');
+          return;
+        }
+        if (!metricData.ratioValue || metricData.ratioValue.trim() === '') {
+          alert('Please enter a ratio value (e.g., 2.6:1)');
+          return;
+        }
+      }
       if (selectedType === 'percentage') {
         const currentVal = metricData.currentValue;
         if (currentVal === '' || currentVal === undefined || currentVal === null) {
@@ -168,6 +178,10 @@ export function MetricBuilderWizard({
     // Set saving state immediately to prevent race condition
     setIsSaving(true);
     try {
+      // For ratio metrics, we don't use numeric current_value/target_value
+      // The ratio values are stored as strings in visualization_config
+      const isNumericMetric = selectedType === 'number' || selectedType === 'percentage';
+
       const metric = {
         goal_id: goalId,
         name: metricDetails.name,
@@ -176,13 +190,14 @@ export function MetricBuilderWizard({
         visualization_type: selectedType,
         visualization_config: metricData, // This JSONB field stores all the chart data including dataPoints
         chart_type: selectedType,
-        current_value: metricData.currentValue || null,
-        target_value: metricData.targetValue || null,
+        current_value: isNumericMetric ? (metricData.currentValue || null) : null,
+        target_value: isNumericMetric ? (metricData.targetValue || null) : null,
         unit: metricData.unit || metricData.yAxisLabel || '',
         frequency: 'yearly' as const,
         aggregation_method: 'latest' as const,
         data_source: 'survey' as const,
-        metric_type: selectedType === 'percentage' ? 'percent' : 'number' as const
+        metric_type: selectedType === 'percentage' ? 'percent' : 'number' as const,
+        is_primary: metricDetails.is_primary || false
       };
 
       console.log('[MetricBuilderWizard] Saving metric:', existingMetric ? 'UPDATE' : 'CREATE', metric);

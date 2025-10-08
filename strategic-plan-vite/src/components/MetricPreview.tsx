@@ -64,6 +64,31 @@ export function MetricPreview({ type, data }: MetricPreviewProps) {
           </div>
         );
 
+      case 'ratio':
+        const fullRatioDisplay = data.label
+          ? `${data.label}${data.ratioValue || '1.0:1'}`
+          : data.ratioValue || '1.0:1';
+
+        return (
+          <div className="bg-white rounded-lg border border-border p-6">
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <h3 className="text-lg font-medium mb-2">Ratio Display</h3>
+                  <div className="space-y-1">
+                    <p className="text-2xl font-bold">{fullRatioDisplay}</p>
+                    {data.showTarget && data.targetValue && (
+                      <p className="text-sm text-muted-foreground">
+                        Target: {data.label}{data.targetValue}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
       case 'percentage':
         return (
           <div className="bg-white rounded-lg border border-border p-6">

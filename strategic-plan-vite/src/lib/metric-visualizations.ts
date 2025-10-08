@@ -18,6 +18,7 @@ import {
 export type VisualizationType =
   | 'percentage'
   | 'number'
+  | 'ratio'
   | 'bar-chart'
   | 'line-chart'
   | 'donut-chart'
@@ -53,6 +54,15 @@ export const visualizationOptions: VisualizationOption[] = [
     icon: Hash,
     preview: '/previews/number.svg',
     dataFields: ['currentValue', 'targetValue', 'unit', 'showTrend', 'previousValue'],
+    status: 'ready'
+  },
+  {
+    id: 'ratio',
+    name: 'Ratio',
+    description: 'Display a ratio value (e.g., 2.6:1) with descriptive text',
+    icon: SlidersHorizontal,
+    preview: '/previews/ratio.svg',
+    dataFields: ['ratioValue', 'label', 'showTarget'],
     status: 'ready'
   },
   {
@@ -138,6 +148,13 @@ export interface NumberConfig {
   label: string;
   showTrend?: boolean;
   decimals?: number;
+}
+
+export interface RatioConfig {
+  ratioValue: string; // e.g., "2.6:1" or "0.7:1"
+  label: string; // e.g., "Risk Ratio for OSS/Expulsion - Black/African American Students is "
+  targetValue?: string; // Optional target ratio
+  showTarget?: boolean;
 }
 
 export interface BarChartConfig {
@@ -229,6 +246,7 @@ export interface LikertScaleConfig {
 export type MetricVisualizationConfig =
   | { type: 'percentage'; config: PercentageConfig }
   | { type: 'number'; config: NumberConfig }
+  | { type: 'ratio'; config: RatioConfig }
   | { type: 'bar-chart'; config: BarChartConfig }
   | { type: 'line-chart'; config: LineChartConfig }
   | { type: 'donut-chart'; config: DonutChartConfig }
@@ -254,6 +272,12 @@ export function getDefaultConfig(type: VisualizationType): any {
         label: 'Metric Name',
         showTrend: true,
         decimals: 0
+      };
+    case 'ratio':
+      return {
+        ratioValue: '1.0:1',
+        label: 'Risk Ratio is ',
+        showTarget: false
       };
     case 'bar-chart':
       return {
