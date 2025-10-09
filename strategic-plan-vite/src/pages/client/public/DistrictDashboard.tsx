@@ -19,6 +19,7 @@ import { PerformanceIndicator } from '../../../components/PerformanceIndicator';
 import { AnnualProgressChart } from '../../../components/AnnualProgressChart';
 import { LikertScaleChart } from '../../../components/LikertScaleChart';
 import { GoalNarrativeDetail } from '../../../components/GoalNarrativeDetail';
+import { GoalsOutlineList } from '../../../components/GoalsOutlineList';
 import type { Goal, TimeSeriesDataPoint } from '../../../lib/types';
 import {
   getProgressColor,
@@ -220,7 +221,7 @@ export function DistrictDashboard() {
                       )}
                     </div>
                     <h3 className="mt-4 text-xl md:text-2xl font-semibold tracking-tight text-neutral-900">
-                      {goal.title}
+                      {goal.goal_number} - {goal.title}
                     </h3>
                     <p className="mt-3 text-neutral-600 text-sm md:text-base line-clamp-3">
                       {goal.description || 'Strategic initiatives focused on this objective'}
@@ -407,7 +408,7 @@ export function DistrictDashboard() {
           setShowSlidePanel(false);
           setSelectedGoal(null);
         }}
-        title={selectedGoal?.title || 'Objective Details'}
+        title={selectedGoal ? `${selectedGoal.goal_number} - ${selectedGoal.title}` : 'Objective Details'}
       >
         {selectedGoal && (
           <div className="h-full flex flex-col">
@@ -435,13 +436,105 @@ export function DistrictDashboard() {
                   {selectedGoal.description || 'Strategic initiatives focused on this objective'}
                 </p>
               </div>
+
+              {/* Goal Overall Progress */}
+              {(() => {
+                const progress = selectedGoal.overall_progress_override ?? selectedGoal.overall_progress ?? 0;
+                const progressColor = getProgressColor(progress);
+                const displayMode = selectedGoal.overall_progress_display_mode || 'percentage';
+
+                // Render progress label based on display mode
+                const renderProgressLabel = () => {
+                  switch (displayMode) {
+                    case 'percentage':
+                      return `${Math.round(progress)}%`;
+                    case 'qualitative':
+                      return getProgressQualitativeLabel(progress);
+                    case 'score':
+                      return `${getProgressScoreOutOf5(progress)}/5.00`;
+                    case 'custom':
+                      return selectedGoal.overall_progress_custom_value || `${Math.round(progress)}%`;
+                    case 'color-only':
+                      return null;
+                    case 'hidden':
+                      return null;
+                    default:
+                      return `${Math.round(progress)}%`;
+                  }
+                };
+
+                const progressLabel = renderProgressLabel();
+
+                // Only show if progress bar is enabled and not hidden mode
+                if (selectedGoal.show_progress_bar === false || displayMode === 'hidden') {
+                  return null;
+                }
+
+                return (
+                  <div className="mt-4">
+                    {/* Progress Label */}
+                    <div className="flex items-center gap-4 text-sm text-neutral-600 mb-2">
+                      <div className="inline-flex items-center gap-1.5">
+                        <Target className="h-4 w-4 text-neutral-400" />
+                        <span>Goal overall progress</span>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="relative">
+                      <div className="w-full bg-secondary rounded-full h-3 overflow-hidden shadow-inner">
+                        <div
+                          className="h-full transition-all duration-700 ease-out relative"
+                          style={{
+                            width: `${Math.min(Math.max(progress, 0), 100)}%`,
+                            background: `linear-gradient(90deg, ${progressColor}, ${progressColor}dd)`,
+                            boxShadow: `0 0 8px ${progressColor}40`
+                          }}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-20" />
+                        </div>
+                      </div>
+                    </div>
+                    {/* Show label if not color-only mode */}
+                    {progressLabel && (
+                      <div className="mt-2 text-right">
+                        <span
+                          className="text-sm font-bold"
+                          style={{
+                            color: progressColor,
+                            textShadow: `0 1px 2px ${progressColor}20`
+                          }}
+                        >
+                          {progressLabel}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              {/* Goals Overview Section */}
+              {/* Goals Overview Outline - Collapsible */}
+              {selectedGoal.children && selectedGoal.children.length > 0 && (
+                <div className="mb-6">
+                  <GoalsOutlineList
+                    goals={selectedGoal.children}
+                    onGoalClick={(goalId) => {
+                      // Scroll to the goal section
+                      const element = document.getElementById(`goal-${goalId}`);
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Goals Section Header */}
               <div className="mb-6">
-                <h3 className="text-xl font-semibold mb-4">
+                <h3 className="text-xl font-semibold">
                   Goals
                 </h3>
               </div>
@@ -487,7 +580,7 @@ export function DistrictDashboard() {
                     } : null;
 
                     return (
-                      <div key={child.id} className="bg-white border border-neutral-200 rounded-lg overflow-hidden transition-all">
+                      <div key={child.id} id={`goal-${child.id}`} className="bg-white border border-neutral-200 rounded-lg overflow-hidden transition-all">
                         <div className="p-5">
                           <div className="flex items-start gap-3 mb-4">
                             <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-sm">
