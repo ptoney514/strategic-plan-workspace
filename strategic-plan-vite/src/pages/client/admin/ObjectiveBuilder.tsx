@@ -450,7 +450,9 @@ export function ObjectiveBuilder() {
           indicator_color: goalForm.indicator_color,
           level: 1,
           parent_id: prev.objective.id,
-          goal_number: `${prev.goals.length + 1}`,
+          goal_number: prev.objective.goal_number
+            ? `${prev.objective.goal_number}.${prev.goals.length + 1}`
+            : `${prev.goals.length + 1}`,
           show_progress_bar: goalForm.show_progress_bar,
           overall_progress_display_mode: goalForm.overall_progress_display_mode,
           overall_progress_custom_value: goalForm.overall_progress_custom_value,
