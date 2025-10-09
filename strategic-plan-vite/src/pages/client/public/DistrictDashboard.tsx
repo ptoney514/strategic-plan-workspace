@@ -522,10 +522,16 @@ export function DistrictDashboard() {
                   <GoalsOutlineList
                     goals={selectedGoal.children}
                     onGoalClick={(goalId) => {
-                      // Scroll to the goal section
-                      const element = document.getElementById(`goal-${goalId}`);
-                      if (element) {
-                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      // Scroll to the goal section with error handling
+                      try {
+                        const element = document.getElementById(`goal-${goalId}`);
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        } else {
+                          console.warn(`[GoalsOutlineList] Could not find goal element with id: goal-${goalId}`);
+                        }
+                      } catch (error) {
+                        console.error('[GoalsOutlineList] Error scrolling to goal:', error);
                       }
                     }}
                   />

@@ -20,6 +20,8 @@ export function GoalsOutlineList({ goals, onGoalClick }: GoalsOutlineListProps) 
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
         className="w-full flex items-center justify-between p-4 hover:bg-neutral-100 transition-colors"
+        aria-expanded={!isCollapsed}
+        aria-label={`${isCollapsed ? 'Show' : 'Hide'} goals overview with ${getTotalGoalsCount(goals)} goals`}
       >
         <div className="flex items-center gap-2">
           {isCollapsed ? (
@@ -68,6 +70,7 @@ function GoalOutlineItem({ goal, level = 0, onGoalClick }: GoalOutlineItemProps)
         onClick={() => onGoalClick?.(goal.id)}
         className="w-full text-left py-1.5 px-2 rounded hover:bg-white transition-colors group"
         style={{ paddingLeft: `${paddingLeft + 8}px` }}
+        aria-label={`Jump to goal ${goal.goal_number}: ${goal.title}`}
       >
         <div className="flex items-baseline gap-2">
           <span className="text-xs font-semibold text-emerald-600 flex-shrink-0">
