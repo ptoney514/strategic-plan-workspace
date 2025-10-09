@@ -1,6 +1,7 @@
 import React from 'react';
 import { TrendingUp, CheckCircle, XCircle, AlertCircle, Clock } from 'lucide-react';
 import { type VisualizationType } from '../lib/metric-visualizations';
+import { NarrativeDisplay } from './NarrativeDisplay';
 import {
   BarChart,
   Bar,
@@ -345,6 +346,13 @@ export function MetricPreview({ type, data }: MetricPreviewProps) {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+          </div>
+        );
+
+      case 'narrative':
+        return (
+          <div className="bg-white rounded-lg border border-border p-2">
+            <NarrativeDisplay config={data} />
           </div>
         );
 

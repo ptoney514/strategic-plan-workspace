@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Info, Plus, Trash2, GripVertical } from 'lucide-react';
 import { type VisualizationType, getDefaultConfig } from '../lib/metric-visualizations';
+import { NarrativeEditor } from './NarrativeEditor';
 
 interface MetricDataFormProps {
   type: VisualizationType;
@@ -837,6 +838,26 @@ export function MetricDataForm({ type, data, onChange }: MetricDataFormProps) {
                 )}
               </div>
             </div>
+          </div>
+        );
+
+      case 'narrative':
+        return (
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 text-blue-600 mt-0.5" />
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium">Share rich narrative content!</p>
+                  <p>Use formatted text with headings, links, and lists to provide context and detailed information.</p>
+                </div>
+              </div>
+            </div>
+
+            <NarrativeEditor
+              config={data}
+              onChange={(newConfig) => onChange(newConfig)}
+            />
           </div>
         );
 

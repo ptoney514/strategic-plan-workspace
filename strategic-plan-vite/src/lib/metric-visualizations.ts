@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   LineChart,
   SlidersHorizontal,
+  FileText,
   type LucideIcon
 } from 'lucide-react';
 
@@ -25,7 +26,8 @@ export type VisualizationType =
   | 'gauge'
   | 'survey'
   | 'status'
-  | 'likert-scale';
+  | 'likert-scale'
+  | 'narrative';
 
 export interface VisualizationOption {
   id: VisualizationType;
@@ -38,14 +40,24 @@ export interface VisualizationOption {
 }
 
 export const visualizationOptions: VisualizationOption[] = [
+  // Ready metrics - alphabetical order
   {
-    id: 'percentage',
-    name: 'Percentage',
-    description: 'Show a percentage with optional target and progress bar',
-    icon: Percent,
-    preview: '/previews/percentage.svg',
-    dataFields: ['currentValue', 'targetValue', 'label', 'showProgressBar'],
-    status: 'coming-soon'
+    id: 'likert-scale',
+    name: 'Likert Scale',
+    description: 'Track survey responses on rating scales (1-5, 1-7, etc.)',
+    icon: SlidersHorizontal,
+    preview: '/previews/likert-scale.svg',
+    dataFields: ['scaleMin', 'scaleMax', 'dataPoints', 'scaleLabel', 'targetValue'],
+    status: 'ready'
+  },
+  {
+    id: 'narrative',
+    name: 'Narrative/Rich Text',
+    description: 'Rich text content with formatting, links, and structured information',
+    icon: FileText,
+    preview: '/previews/narrative.svg',
+    dataFields: ['content', 'title', 'allowedTags'],
+    status: 'ready'
   },
   {
     id: 'number',
@@ -65,6 +77,7 @@ export const visualizationOptions: VisualizationOption[] = [
     dataFields: ['ratioValue', 'label', 'showTarget'],
     status: 'ready'
   },
+  // Coming soon metrics - alphabetical order
   {
     id: 'bar-chart',
     name: 'Bar Chart',
@@ -72,15 +85,6 @@ export const visualizationOptions: VisualizationOption[] = [
     icon: BarChart3,
     preview: '/previews/bar-chart.svg',
     dataFields: ['dataPoints', 'xAxisLabel', 'yAxisLabel', 'showLegend'],
-    status: 'coming-soon'
-  },
-  {
-    id: 'line-chart',
-    name: 'Line Chart',
-    description: 'Show trends and changes over time',
-    icon: LineChart,
-    preview: '/previews/line-chart.svg',
-    dataFields: ['dataPoints', 'xAxisLabel', 'yAxisLabel', 'showArea'],
     status: 'coming-soon'
   },
   {
@@ -102,12 +106,21 @@ export const visualizationOptions: VisualizationOption[] = [
     status: 'coming-soon'
   },
   {
-    id: 'survey',
-    name: 'Survey Results',
-    description: 'Display survey data with multiple sources and trends',
-    icon: Activity,
-    preview: '/previews/survey.svg',
-    dataFields: ['surveyData', 'scale', 'sources', 'narrative'],
+    id: 'line-chart',
+    name: 'Line Chart',
+    description: 'Show trends and changes over time',
+    icon: LineChart,
+    preview: '/previews/line-chart.svg',
+    dataFields: ['dataPoints', 'xAxisLabel', 'yAxisLabel', 'showArea'],
+    status: 'coming-soon'
+  },
+  {
+    id: 'percentage',
+    name: 'Percentage',
+    description: 'Show a percentage with optional target and progress bar',
+    icon: Percent,
+    preview: '/previews/percentage.svg',
+    dataFields: ['currentValue', 'targetValue', 'label', 'showProgressBar'],
     status: 'coming-soon'
   },
   {
@@ -120,13 +133,13 @@ export const visualizationOptions: VisualizationOption[] = [
     status: 'coming-soon'
   },
   {
-    id: 'likert-scale',
-    name: 'Likert Scale',
-    description: 'Track survey responses on rating scales (1-5, 1-7, etc.)',
-    icon: SlidersHorizontal,
-    preview: '/previews/likert-scale.svg',
-    dataFields: ['scaleMin', 'scaleMax', 'dataPoints', 'scaleLabel', 'targetValue'],
-    status: 'ready'
+    id: 'survey',
+    name: 'Survey Results',
+    description: 'Display survey data with multiple sources and trends',
+    icon: Activity,
+    preview: '/previews/survey.svg',
+    dataFields: ['surveyData', 'scale', 'sources', 'narrative'],
+    status: 'coming-soon'
   }
 ];
 
@@ -243,6 +256,14 @@ export interface LikertScaleConfig {
   showAverage?: boolean;
 }
 
+export interface NarrativeConfig {
+  content: string;           // HTML string with rich text
+  title?: string;            // Optional section title
+  allowedTags?: string[];    // Security: whitelist HTML tags (defaults to safe list)
+  maxLength?: number;        // Character limit for content
+  showTitle?: boolean;       // Show/hide the title
+}
+
 export type MetricVisualizationConfig =
   | { type: 'percentage'; config: PercentageConfig }
   | { type: 'number'; config: NumberConfig }
@@ -253,7 +274,8 @@ export type MetricVisualizationConfig =
   | { type: 'gauge'; config: GaugeConfig }
   | { type: 'survey'; config: SurveyConfig }
   | { type: 'status'; config: StatusConfig }
-  | { type: 'likert-scale'; config: LikertScaleConfig };
+  | { type: 'likert-scale'; config: LikertScaleConfig }
+  | { type: 'narrative'; config: NarrativeConfig };
 
 // Helper to get default config for a visualization type
 export function getDefaultConfig(type: VisualizationType): any {
@@ -347,6 +369,14 @@ export function getDefaultConfig(type: VisualizationType): any {
         targetValue: 4,
         showTarget: true,
         showAverage: true
+      };
+    case 'narrative':
+      return {
+        content: '<p>Enter your narrative content here...</p>',
+        title: 'Narrative Title',
+        showTitle: true,
+        allowedTags: ['p', 'h1', 'h2', 'h3', 'a', 'ul', 'li', 'strong', 'em', 'u', 'br'],
+        maxLength: 5000
       };
     default:
       return {};
