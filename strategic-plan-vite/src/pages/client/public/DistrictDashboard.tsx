@@ -20,6 +20,7 @@ import { AnnualProgressChart } from '../../../components/AnnualProgressChart';
 import { LikertScaleChart } from '../../../components/LikertScaleChart';
 import { GoalNarrativeDetail } from '../../../components/GoalNarrativeDetail';
 import { GoalsOutlineList } from '../../../components/GoalsOutlineList';
+import { NarrativeDisplay } from '../../../components/NarrativeDisplay';
 import type { Goal, TimeSeriesDataPoint } from '../../../lib/types';
 import {
   getProgressColor,
@@ -628,28 +629,33 @@ export function DistrictDashboard() {
                         </div>
 
                         {/* Metric Visualization - Always show if metrics exist */}
-                        {primaryMetric && (chartData && chartData.length > 0) && (
+                        {primaryMetric && (
                           <div className="border-t border-neutral-200 p-5 bg-neutral-50">
-                            {primaryMetric.visualization_type === 'likert-scale' ? (
-                              <LikertScaleChart
-                                data={chartData}
-                                title={primaryMetric.metric_name || "Survey Results"}
-                                description={primaryMetric.description}
-                                scaleMin={primaryMetric.visualization_config?.scaleMin || 1}
-                                scaleMax={primaryMetric.visualization_config?.scaleMax || 5}
-                                scaleLabel={primaryMetric.visualization_config?.scaleLabel || '(5 high)'}
-                                targetValue={primaryMetric.target_value || primaryMetric.visualization_config?.targetValue}
-                                showAverage={true}
-                              />
+                            {primaryMetric.visualization_type === 'narrative' ? (
+                              <NarrativeDisplay config={primaryMetric.visualization_config} />
+                            ) : primaryMetric.visualization_type === 'likert-scale' ? (
+                              chartData && chartData.length > 0 && (
+                                <LikertScaleChart
+                                  data={chartData}
+                                  title={primaryMetric.metric_name || "Survey Results"}
+                                  description={primaryMetric.description}
+                                  scaleMin={primaryMetric.visualization_config?.scaleMin || 1}
+                                  scaleMax={primaryMetric.visualization_config?.scaleMax || 5}
+                                  scaleLabel={primaryMetric.visualization_config?.scaleLabel || '(5 high)'}
+                                  targetValue={primaryMetric.target_value || primaryMetric.visualization_config?.targetValue}
+                                  showAverage={true}
+                                />
+                              )
                             ) : (
-                              <AnnualProgressChart
-                                data={chartData}
-                                title={primaryMetric?.metric_name || "Annual Progress"}
-                                description={primaryMetric?.description || "Year-over-year progress tracking"}
-                                unit={primaryMetric?.unit || ""}
-                              />
+                              chartData && chartData.length > 0 && (
+                                <AnnualProgressChart
+                                  data={chartData}
+                                  title={primaryMetric?.metric_name || "Annual Progress"}
+                                  description={primaryMetric?.description || "Year-over-year progress tracking"}
+                                  unit={primaryMetric?.unit || ""}
+                                />
+                              )
                             )}
-
                           </div>
                         )}
 
@@ -731,7 +737,11 @@ export function DistrictDashboard() {
 
                                           return (
                                             <div className="border-t border-neutral-300">
-                                              {primarySubMetric.visualization_type === 'number' ? (
+                                              {primarySubMetric.visualization_type === 'narrative' ? (
+                                                <div className="p-5 bg-neutral-50">
+                                                  <NarrativeDisplay config={primarySubMetric.visualization_config} />
+                                                </div>
+                                              ) : primarySubMetric.visualization_type === 'number' ? (
                                                 <div className="p-6 bg-white">
                                                   <div className="text-center">
                                                     <div className="text-sm font-medium text-neutral-600 mb-2">
