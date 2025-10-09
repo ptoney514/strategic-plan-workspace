@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   LineChart,
   SlidersHorizontal,
+  FileText,
   type LucideIcon
 } from 'lucide-react';
 
@@ -25,7 +26,8 @@ export type VisualizationType =
   | 'gauge'
   | 'survey'
   | 'status'
-  | 'likert-scale';
+  | 'likert-scale'
+  | 'narrative';
 
 export interface VisualizationOption {
   id: VisualizationType;
@@ -126,6 +128,15 @@ export const visualizationOptions: VisualizationOption[] = [
     icon: SlidersHorizontal,
     preview: '/previews/likert-scale.svg',
     dataFields: ['scaleMin', 'scaleMax', 'dataPoints', 'scaleLabel', 'targetValue'],
+    status: 'ready'
+  },
+  {
+    id: 'narrative',
+    name: 'Narrative/Rich Text',
+    description: 'Rich text content with formatting, links, and structured information',
+    icon: FileText,
+    preview: '/previews/narrative.svg',
+    dataFields: ['content', 'title', 'allowedTags'],
     status: 'ready'
   }
 ];
@@ -243,6 +254,14 @@ export interface LikertScaleConfig {
   showAverage?: boolean;
 }
 
+export interface NarrativeConfig {
+  content: string;           // HTML string with rich text
+  title?: string;            // Optional section title
+  allowedTags?: string[];    // Security: whitelist HTML tags (defaults to safe list)
+  maxLength?: number;        // Character limit for content
+  showTitle?: boolean;       // Show/hide the title
+}
+
 export type MetricVisualizationConfig =
   | { type: 'percentage'; config: PercentageConfig }
   | { type: 'number'; config: NumberConfig }
@@ -253,7 +272,8 @@ export type MetricVisualizationConfig =
   | { type: 'gauge'; config: GaugeConfig }
   | { type: 'survey'; config: SurveyConfig }
   | { type: 'status'; config: StatusConfig }
-  | { type: 'likert-scale'; config: LikertScaleConfig };
+  | { type: 'likert-scale'; config: LikertScaleConfig }
+  | { type: 'narrative'; config: NarrativeConfig };
 
 // Helper to get default config for a visualization type
 export function getDefaultConfig(type: VisualizationType): any {
@@ -347,6 +367,14 @@ export function getDefaultConfig(type: VisualizationType): any {
         targetValue: 4,
         showTarget: true,
         showAverage: true
+      };
+    case 'narrative':
+      return {
+        content: '<p>Enter your narrative content here...</p>',
+        title: 'Narrative Title',
+        showTitle: true,
+        allowedTags: ['p', 'h1', 'h2', 'h3', 'a', 'ul', 'li', 'strong', 'em', 'u', 'br'],
+        maxLength: 5000
       };
     default:
       return {};
