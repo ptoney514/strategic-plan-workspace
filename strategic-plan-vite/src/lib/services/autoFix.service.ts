@@ -33,7 +33,7 @@ export class AutoFixService {
 
           if (!parentExists) {
             const parentLevel = ValidationService.calculateLevel(parentNumber);
-            const levelLabel = parentLevel === 0 ? 'Goal' : parentLevel === 1 ? 'Strategy' : 'Action';
+            const levelLabel = parentLevel === 0 ? 'Strategic Objective' : parentLevel === 1 ? 'Goal' : 'Goal';
 
             missingParents.set(parentNumber, {
               type: 'create-parent',
@@ -166,7 +166,7 @@ export class AutoFixService {
 
       if (!parentExists) {
         const parentLevel = ValidationService.calculateLevel(parentNumber);
-        const levelLabel = parentLevel === 0 ? 'Goal' : parentLevel === 1 ? 'Strategy' : 'Action';
+        const levelLabel = parentLevel === 0 ? 'Strategic Objective' : parentLevel === 1 ? 'Goal' : 'Goal';
 
         allSuggestions.push({
           type: 'create-parent',

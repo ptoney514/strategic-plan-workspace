@@ -16,26 +16,23 @@ import { Input } from '../ui/Input';
 
 export interface StagedDataTableProps {
   data: StagedGoal[];
-  onEdit?: (goal: StagedGoal) => void;
-  onDelete?: (goalId: string) => void;
+  onToggleImport?: (goalId: string, shouldImport: boolean) => void;
+  onToggleImportAll?: (shouldImport: boolean) => void;
   onFix?: (goal: StagedGoal, suggestion: AutoFixSuggestion) => void;
   onBulkAutoFix?: () => void;
-  onBulkAction?: (action: 'delete' | 'mark-valid', selectedIds: string[]) => void;
 }
 
 const columnHelper = createColumnHelper<StagedGoal>();
 
 export const StagedDataTable: React.FC<StagedDataTableProps> = ({
   data,
-  onEdit,
-  onDelete,
+  onToggleImport,
+  onToggleImportAll,
   onFix,
-  onBulkAutoFix,
-  onBulkAction
+  onBulkAutoFix
 }) => {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [rowSelection, setRowSelection] = React.useState({});
   const [filterStatus, setFilterStatus] = React.useState<'all' | 'errors' | 'warnings' | 'fixable'>('all');
 
   // Filter data based on status filter
@@ -47,27 +44,34 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
     return data;
   }, [data, filterStatus]);
 
+  // Calculate how many rows will be imported
+  const importCount = useMemo(() => {
+    return data.filter(g => g.action !== 'skip').length;
+  }, [data]);
+
+  const allImportable = useMemo(() => {
+    return data.every(g => g.action !== 'skip');
+  }, [data]);
+
   const columns = useMemo(
     () => [
       columnHelper.display({
-        id: 'select',
-        header: ({ table }) => (
-          <input
-            type="checkbox"
-            checked={table.getIsAllRowsSelected()}
-            onChange={table.getToggleAllRowsSelectedHandler()}
-            className="rounded border-border"
-          />
-        ),
-        cell: ({ row }) => (
-          <input
-            type="checkbox"
-            checked={row.getIsSelected()}
-            onChange={row.getToggleSelectedHandler()}
-            className="rounded border-border"
-          />
-        ),
-        size: 40
+        id: 'import',
+        header: '',
+        cell: ({ row }) => {
+          const goal = row.original;
+          const willImport = goal.action !== 'skip';
+          return (
+            <input
+              type="checkbox"
+              checked={willImport}
+              onChange={(e) => onToggleImport?.(goal.id, e.target.checked)}
+              className="rounded border-border"
+              title={willImport ? "Uncheck to skip this row" : "Check to import this row"}
+            />
+          );
+        },
+        size: 50
       }),
       columnHelper.accessor('validation_status', {
         header: 'Status',
@@ -127,7 +131,7 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
         size: 60
       }),
       columnHelper.accessor('goal_number', {
-        header: 'Goal #',
+        header: 'Goal',
         cell: (info) => (
           <span className="font-mono text-sm font-medium">{info.getValue() || '-'}</span>
         ),
@@ -137,7 +141,7 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
         header: 'Level',
         cell: (info) => {
           const level = info.getValue();
-          const labels = ['Goal', 'Strategy', 'Action'];
+          const labels = ['Strategic Objective', 'Goal', 'Goal'];
           const colors = ['bg-purple-100 text-purple-700', 'bg-blue-100 text-blue-700', 'bg-green-100 text-green-700'];
           return (
             <span className={`text-xs px-2 py-1 rounded-full ${level !== undefined ? colors[level] : 'bg-gray-100 text-gray-700'}`}>
@@ -145,16 +149,16 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
             </span>
           );
         },
-        size: 90
+        size: 120
       }),
       columnHelper.accessor('title', {
         header: 'Title',
         cell: (info) => (
-          <div className="max-w-md">
+          <div className="max-w-sm">
             <p className="text-sm truncate">{info.getValue() || '-'}</p>
           </div>
         ),
-        size: 300
+        size: 250
       }),
       columnHelper.accessor('owner_name', {
         header: 'Owner',
@@ -184,69 +188,32 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
             </div>
           );
         },
-        size: 200
-      }),
-      columnHelper.accessor('action', {
-        header: 'Action',
-        cell: (info) => {
-          const action = info.getValue();
-          const colors = {
-            create: 'bg-green-100 text-green-700',
-            update: 'bg-blue-100 text-blue-700',
-            skip: 'bg-gray-100 text-gray-700'
-          };
-          return (
-            <span className={`text-xs px-2 py-1 rounded-full font-medium ${colors[action]}`}>
-              {action}
-            </span>
-          );
-        },
-        size: 80
+        size: 220
       }),
       columnHelper.display({
-        id: 'actions',
-        header: 'Actions',
+        id: 'fix',
+        header: '',
         cell: ({ row }) => {
           const goal = row.original;
           const hasFix = goal.validation_status === 'fixable' && goal.auto_fix_suggestions && goal.auto_fix_suggestions.length > 0;
 
+          if (!hasFix || !onFix) return null;
+
           return (
-            <div className="flex items-center gap-2">
-              {hasFix && onFix && (
-                <button
-                  onClick={() => onFix(goal, goal.auto_fix_suggestions![0])}
-                  className="text-blue-600 hover:text-blue-800 font-medium text-xs flex items-center gap-1"
-                  title="Auto-fix this issue"
-                >
-                  <Wrench className="h-3 w-3" />
-                  Fix
-                </button>
-              )}
-              {onEdit && !goal.is_auto_generated && (
-                <button
-                  onClick={() => onEdit(goal)}
-                  className="text-gray-600 hover:text-gray-800"
-                  title="Edit"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </button>
-              )}
-              {onDelete && (
-                <button
-                  onClick={() => onDelete(goal.id)}
-                  className="text-red-600 hover:text-red-800"
-                  title="Delete"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+            <button
+              onClick={() => onFix(goal, goal.auto_fix_suggestions![0])}
+              className="text-blue-600 hover:text-blue-800 font-medium text-xs flex items-center gap-1 whitespace-nowrap"
+              title="Auto-fix this issue"
+            >
+              <Wrench className="h-3 w-3" />
+              Fix
+            </button>
           );
         },
-        size: 120
+        size: 60
       })
     ],
-    [onEdit, onDelete, onFix]
+    [onToggleImport, onToggleImportAll, onFix, allImportable]
   );
 
   const table = useReactTable({
@@ -254,20 +221,14 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
     columns,
     state: {
       sorting,
-      columnFilters,
-      rowSelection
+      columnFilters
     },
-    enableRowSelection: true,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel()
   });
-
-  const selectedRows = table.getFilteredSelectedRowModel().rows;
-  const selectedIds = selectedRows.map(row => row.original.id);
 
   // Calculate summary stats
   const stats = useMemo(() => {
@@ -280,6 +241,15 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Import Count Banner */}
+      {importCount < data.length && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-sm text-blue-900">
+            <strong>{importCount}</strong> of <strong>{data.length}</strong> rows will be imported ({data.length - importCount} skipped)
+          </p>
+        </div>
+      )}
+
       {/* Summary Stats */}
       <div className="grid grid-cols-5 gap-4">
         <div className="bg-card border border-border rounded-lg p-4">
@@ -372,20 +342,22 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
           </button>
         </div>
 
-        {selectedIds.length > 0 && onBulkAction && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
-              {selectedIds.length} selected
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onBulkAction('delete', selectedIds)}
-            >
-              Delete Selected
-            </Button>
-          </div>
-        )}
+        {/* Select All Checkbox */}
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="select-all-import"
+            checked={allImportable}
+            onChange={(e) => onToggleImportAll?.(e.target.checked)}
+            className="rounded border-border"
+          />
+          <label
+            htmlFor="select-all-import"
+            className="text-sm text-foreground cursor-pointer select-none"
+          >
+            Select all rows to import ({importCount} selected)
+          </label>
+        </div>
       </div>
 
       {/* Table */}
@@ -413,28 +385,36 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
               ))}
             </thead>
             <tbody className="bg-white divide-y divide-border">
-              {table.getRowModel().rows.map(row => (
-                <tr
-                  key={row.id}
-                  className={`hover:bg-muted/20 ${
-                    row.original.validation_status === 'error'
-                      ? 'bg-red-50/50'
-                      : row.original.validation_status === 'warning'
-                      ? 'bg-yellow-50/50'
-                      : row.original.validation_status === 'fixable'
-                      ? 'bg-blue-50/50'
-                      : row.original.is_auto_generated
-                      ? 'bg-green-50/30 border-l-4 border-l-green-500'
-                      : ''
-                  }`}
-                >
-                  {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="px-4 py-3 text-sm">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+              {table.getRowModel().rows.map(row => {
+                const isSkipped = row.original.action === 'skip';
+                return (
+                  <tr
+                    key={row.id}
+                    className={`hover:bg-muted/20 ${
+                      isSkipped
+                        ? 'bg-gray-50 opacity-50'
+                        : row.original.validation_status === 'error'
+                        ? 'bg-red-50/50'
+                        : row.original.validation_status === 'warning'
+                        ? 'bg-yellow-50/50'
+                        : row.original.validation_status === 'fixable'
+                        ? 'bg-blue-50/50'
+                        : row.original.is_auto_generated
+                        ? 'bg-green-50/30 border-l-4 border-l-green-500'
+                        : ''
+                    }`}
+                  >
+                    {row.getVisibleCells().map(cell => (
+                      <td
+                        key={cell.id}
+                        className={`px-4 py-3 text-sm ${isSkipped ? 'line-through text-muted-foreground' : ''}`}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

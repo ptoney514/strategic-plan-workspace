@@ -35,7 +35,6 @@ export function ImportWizard() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { data: district } = useDistrict(slug!);
-  const { data: existingGoals } = useGoals(district?.id || '');
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState<WizardStep>('upload');
@@ -88,11 +87,15 @@ export function ImportWizard() {
 
     try {
       // Parse Excel file
+      console.log('Starting Excel file parsing...');
       const parsed = await ExcelParserService.parseFile(selectedFile);
+      console.log('Parsed data:', parsed);
       setParsedData(parsed);
 
       // Validate
+      console.log('Validating parsed data...');
       const validation = ExcelParserService.validateParsedData(parsed);
+      console.log('Validation result:', validation);
       if (!validation.isValid) {
         setError(`Validation errors: ${validation.errors.join(', ')}`);
         setIsProcessing(false);
@@ -100,27 +103,50 @@ export function ImportWizard() {
       }
 
       // Create import session
+      console.log('Creating import session...');
       const session = await ImportService.createSession(
         district.id,
         selectedFile.name,
         selectedFile.size,
         'admin' // TODO: Get actual user
       );
+      console.log('Session created:', session);
       setImportSession(session);
 
+      // Fetch existing goals for validation
+      console.log('Fetching existing goals for validation...');
+      const { data: existingGoals } = await import('../../../lib/services').then(m =>
+        m.GoalsService.getByDistrict(district.id)
+          .then(data => ({ data }))
+          .catch(error => {
+            console.warn('Could not fetch existing goals:', error);
+            return { data: [] };
+          })
+      );
+      console.log('Existing goals:', existingGoals);
+
       // Stage data
-      const { stagedGoals: goals, stagedMetrics: metrics } = await ImportService.stageData(
+      console.log('Staging data...');
+      const { stagedGoals: goals, stagedMetrics: metrics} = await ImportService.stageData(
         session.id,
         district.id,
         parsed,
         existingGoals || []
       );
+      console.log('Staged goals:', goals);
+      console.log('Staged metrics:', metrics);
 
       setStagedGoals(goals);
       setStagedMetrics(metrics);
       setCurrentStep('review');
     } catch (err) {
       console.error('Error parsing and staging:', err);
+      // Log full error details for debugging
+      if (err instanceof Error) {
+        console.error('Error name:', err.name);
+        console.error('Error message:', err.message);
+        console.error('Error stack:', err.stack);
+      }
       setError(err instanceof Error ? err.message : 'Failed to parse Excel file');
     } finally {
       setIsProcessing(false);
@@ -367,13 +393,37 @@ export function ImportWizard() {
 
             <StagedDataTable
               data={stagedGoals}
-              onEdit={(goal) => {
-                // TODO: Implement edit modal
-                console.log('Edit goal:', goal);
+              onToggleImport={async (goalId, shouldImport) => {
+                try {
+                  const newAction = shouldImport ? 'create' : 'skip';
+                  await ImportService.updateStagedGoal(goalId, { action: newAction });
+
+                  // Update local state
+                  setStagedGoals(prev =>
+                    prev.map(g => g.id === goalId ? { ...g, action: newAction } : g)
+                  );
+                } catch (error) {
+                  console.error('Error toggling import:', error);
+                }
               }}
-              onDelete={async (goalId) => {
-                // TODO: Implement delete
-                console.log('Delete goal:', goalId);
+              onToggleImportAll={async (shouldImport) => {
+                try {
+                  const newAction = shouldImport ? 'create' : 'skip';
+
+                  // Update all goals in parallel
+                  await Promise.all(
+                    stagedGoals.map(goal =>
+                      ImportService.updateStagedGoal(goal.id, { action: newAction })
+                    )
+                  );
+
+                  // Update local state
+                  setStagedGoals(prev =>
+                    prev.map(g => ({ ...g, action: newAction }))
+                  );
+                } catch (error) {
+                  console.error('Error toggling import all:', error);
+                }
               }}
               onFix={handleFixSingle}
               onBulkAutoFix={handleBulkAutoFix}

@@ -59,7 +59,7 @@ export class ValidationService {
 
       if (!parentExists && parentNumber) {
         const parentLevel = this.calculateLevel(parentNumber);
-        const levelLabel = parentLevel === 0 ? 'Goal' : parentLevel === 1 ? 'Strategy' : 'Action';
+        const levelLabel = parentLevel === 0 ? 'Strategic Objective' : parentLevel === 1 ? 'Goal' : 'Goal';
 
         messages.push(`Parent goal ${parentNumber} not found`);
 

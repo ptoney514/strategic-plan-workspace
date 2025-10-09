@@ -99,6 +99,9 @@ export class ImportService {
         autoFixSuggestions: []
       };
 
+      // Map 'fixable' status to 'warning' for database (constraint only allows valid/warning/error)
+      const dbStatus = validation.status === 'fixable' ? 'warning' : validation.status;
+
       return {
         import_session_id: sessionId,
         row_number: goal.row_number,
@@ -109,7 +112,7 @@ export class ImportService {
         description: goal.description,
         level: goal.level,
         owner_name: goal.owner_name,
-        validation_status: validation.status,
+        validation_status: dbStatus,
         validation_messages: validation.messages,
         auto_fix_suggestions: validation.autoFixSuggestions || [],
         is_mapped: false,

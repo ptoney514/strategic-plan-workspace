@@ -61,8 +61,8 @@ export const AutoFixModal: React.FC<AutoFixModalProps> = ({
     }
   };
 
-  const levelLabel = suggestion?.suggestedLevel === 0 ? 'Goal' :
-                     suggestion?.suggestedLevel === 1 ? 'Strategy' : 'Action';
+  const levelLabel = suggestion?.suggestedLevel === 0 ? 'Strategic Objective' :
+                     suggestion?.suggestedLevel === 1 ? 'Goal' : 'Goal';
 
   return (
     <>
