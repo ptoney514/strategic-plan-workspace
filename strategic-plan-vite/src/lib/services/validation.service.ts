@@ -1,4 +1,4 @@
-import type { ParsedGoal, ValidationResult, ValidationStatus } from '../types/import.types';
+import type { ParsedGoal, ValidationResult, ValidationStatus, AutoFixSuggestion } from '../types/import.types';
 import type { Goal } from '../types';
 
 /**
@@ -16,6 +16,7 @@ export class ValidationService {
     existingGoals: Goal[]
   ): ValidationResult {
     const messages: string[] = [];
+    const autoFixSuggestions: AutoFixSuggestion[] = [];
     let status: ValidationStatus = 'valid';
 
     // Required field validations
@@ -50,15 +51,30 @@ export class ValidationService {
       }
     }
 
-    // Validate hierarchy (parent exists)
+    // Validate hierarchy (parent exists) - NOW FIXABLE
     if (goal.level > 0) {
       const parentNumber = this.getParentGoalNumber(goal.goal_number);
       const parentExists = allGoals.some(g => g.goal_number === parentNumber) ||
                           existingGoals.some(g => g.goal_number === parentNumber);
 
-      if (!parentExists) {
+      if (!parentExists && parentNumber) {
+        const parentLevel = this.calculateLevel(parentNumber);
+        const levelLabel = parentLevel === 0 ? 'Goal' : parentLevel === 1 ? 'Strategy' : 'Action';
+
         messages.push(`Parent goal ${parentNumber} not found`);
-        status = 'error';
+
+        // Create auto-fix suggestion
+        autoFixSuggestions.push({
+          type: 'create-parent',
+          missingGoalNumber: parentNumber,
+          suggestedTitle: `${levelLabel} ${parentNumber} (Please rename)`,
+          suggestedOwner: goal.owner_name,
+          suggestedLevel: parentLevel,
+          action: `Create placeholder ${levelLabel.toLowerCase()} "${parentNumber}"`
+        });
+
+        // Mark as fixable instead of error
+        status = status === 'error' ? 'error' : 'fixable';
       }
     }
 
@@ -70,14 +86,16 @@ export class ValidationService {
       }
     }
 
-    if (goal.metrics.length === 0) {
+    // Only warn about missing metrics for level 1 and 2 goals
+    // Level 0 (Strategic Objectives) don't need metrics
+    if (goal.metrics.length === 0 && goal.level > 0) {
       messages.push('No metrics found for this goal');
       if (status === 'valid') {
         status = 'warning';
       }
     }
 
-    return { status, messages };
+    return { status, messages, autoFixSuggestions };
   }
 
   /**
@@ -117,16 +135,19 @@ export class ValidationService {
     validRows: number;
     warningRows: number;
     errorRows: number;
+    fixableRows: number;
     canImport: boolean;
   } {
     let validRows = 0;
     let warningRows = 0;
     let errorRows = 0;
+    let fixableRows = 0;
 
     results.forEach(result => {
       if (result.status === 'valid') validRows++;
       else if (result.status === 'warning') warningRows++;
       else if (result.status === 'error') errorRows++;
+      else if (result.status === 'fixable') fixableRows++;
     });
 
     return {
@@ -134,7 +155,8 @@ export class ValidationService {
       validRows,
       warningRows,
       errorRows,
-      canImport: errorRows === 0 // Can only import if no errors
+      fixableRows,
+      canImport: errorRows === 0 // Can import if no errors (fixable is OK)
     };
   }
 
@@ -144,6 +166,16 @@ export class ValidationService {
   static isValidGoalNumberFormat(goalNumber: string): boolean {
     // Must be digits separated by dots: "1", "1.1", "1.1.1"
     return /^\d+(\.\d+){0,2}$/.test(goalNumber);
+  }
+
+  /**
+   * Calculate level from goal number
+   * "1" → 0, "1.1" → 1, "1.1.1" → 2
+   */
+  static calculateLevel(goalNumber: string): 0 | 1 | 2 {
+    const parts = goalNumber.split('.');
+    const level = parts.length - 1;
+    return Math.min(Math.max(level, 0), 2) as 0 | 1 | 2;
   }
 
   /**

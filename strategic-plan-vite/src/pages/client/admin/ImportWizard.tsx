@@ -14,16 +14,19 @@ import { useDistrict } from '../../../hooks/useDistricts';
 import { useGoals } from '../../../hooks/useGoals';
 import { ExcelParserService } from '../../../lib/services/excelParser.service';
 import { ImportService } from '../../../lib/services/import.service';
+import { AutoFixService } from '../../../lib/services/autoFix.service';
 import { Button } from '../../../components/ui/Button';
 import { Progress } from '../../../components/ui/Progress';
 import { Alert } from '../../../components/ui/Alert';
 import { StagedDataTable } from '../../../components/import/StagedDataTable';
+import { AutoFixModal } from '../../../components/import/AutoFixModal';
 import type {
   ImportSession,
   ParsedExcelData,
   StagedGoal,
   StagedMetric,
-  ImportProgress as ImportProgressType
+  ImportProgress as ImportProgressType,
+  AutoFixSuggestion
 } from '../../../lib/types/import.types';
 
 type WizardStep = 'upload' | 'review' | 'import' | 'summary';
@@ -44,6 +47,11 @@ export function ImportWizard() {
   const [importProgress, setImportProgress] = useState<ImportProgressType | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Auto-fix state
+  const [showAutoFixModal, setShowAutoFixModal] = useState(false);
+  const [currentFixSuggestion, setCurrentFixSuggestion] = useState<AutoFixSuggestion | null>(null);
+  const [currentFixGoal, setCurrentFixGoal] = useState<StagedGoal | null>(null);
 
   // Step 1: Handle file upload
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,6 +151,71 @@ export function ImportWizard() {
       setError(err instanceof Error ? err.message : 'Failed to import data');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // Auto-fix handlers
+  const handleFixSingle = (goal: StagedGoal, suggestion: AutoFixSuggestion) => {
+    setCurrentFixGoal(goal);
+    setCurrentFixSuggestion(suggestion);
+    setShowAutoFixModal(true);
+  };
+
+  const handleBulkAutoFix = () => {
+    if (!importSession) return;
+
+    const fixableGoals = stagedGoals.filter(g => g.validation_status === 'fixable');
+    const allSuggestions = fixableGoals
+      .flatMap(g => g.auto_fix_suggestions || [])
+      .filter((s, index, self) =>
+        index === self.findIndex(t => t.missingGoalNumber === s.missingGoalNumber)
+      );
+
+    if (allSuggestions.length > 0) {
+      setCurrentFixSuggestion(null);
+      setCurrentFixGoal(null);
+      setShowAutoFixModal(true);
+    }
+  };
+
+  const handleApplyAutoFix = async (
+    suggestion: AutoFixSuggestion,
+    customTitle?: string,
+    customOwner?: string
+  ) => {
+    if (!importSession) return;
+
+    try {
+      const newGoal = await AutoFixService.applyAutoFix(
+        importSession.id,
+        suggestion,
+        customTitle,
+        customOwner
+      );
+
+      // Refresh staged goals
+      const { goals } = await ImportService.getStagedData(importSession.id);
+      setStagedGoals(goals);
+      setShowAutoFixModal(false);
+    } catch (error) {
+      console.error('Error applying auto-fix:', error);
+      setError(error instanceof Error ? error.message : 'Failed to apply auto-fix');
+    }
+  };
+
+  const handleBulkApplyAutoFix = async (suggestions: AutoFixSuggestion[]) => {
+    if (!importSession) return;
+
+    try {
+      await AutoFixService.bulkAutoFix(importSession.id, suggestions);
+
+      // Refresh staged goals
+      const { goals } = await ImportService.getStagedData(importSession.id);
+      setStagedGoals(goals);
+      setShowAutoFixModal(false);
+    } catch (error) {
+      console.error('Error applying bulk auto-fix:', error);
+      setError(error instanceof Error ? error.message : 'Failed to apply bulk auto-fix');
     }
   };
 
@@ -302,6 +375,8 @@ export function ImportWizard() {
                 // TODO: Implement delete
                 console.log('Delete goal:', goalId);
               }}
+              onFix={handleFixSingle}
+              onBulkAutoFix={handleBulkAutoFix}
             />
 
             <div className="flex items-center justify-between">
@@ -457,6 +532,22 @@ export function ImportWizard() {
       <div className="bg-white rounded-xl border border-border p-8">
         {renderStep()}
       </div>
+
+      {/* Auto-Fix Modal */}
+      <AutoFixModal
+        isOpen={showAutoFixModal}
+        onClose={() => setShowAutoFixModal(false)}
+        suggestion={currentFixSuggestion}
+        suggestions={currentFixSuggestion ? undefined : stagedGoals
+          .filter(g => g.validation_status === 'fixable')
+          .flatMap(g => g.auto_fix_suggestions || [])
+          .filter((s, index, self) =>
+            index === self.findIndex(t => t.missingGoalNumber === s.missingGoalNumber)
+          )}
+        onApply={handleApplyAutoFix}
+        onBulkApply={handleBulkApplyAutoFix}
+        isBulk={!currentFixSuggestion}
+      />
     </div>
   );
 }

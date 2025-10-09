@@ -3,8 +3,9 @@
  */
 
 export type ImportStatus = 'uploaded' | 'parsing' | 'parsed' | 'mapping' | 'importing' | 'completed' | 'failed';
-export type ValidationStatus = 'valid' | 'warning' | 'error';
+export type ValidationStatus = 'valid' | 'warning' | 'error' | 'fixable';
 export type ImportAction = 'create' | 'update' | 'skip';
+export type AutoFixType = 'create-parent' | 'merge-duplicate' | 'fix-format';
 
 export interface ImportSession {
   id: string;
@@ -47,6 +48,8 @@ export interface StagedGoal {
   is_mapped: boolean;
   mapped_to_goal_id?: string;
   action: ImportAction;
+  is_auto_generated?: boolean;
+  auto_fix_suggestions?: AutoFixSuggestion[];
   created_at: string;
   updated_at: string;
 }
@@ -117,6 +120,18 @@ export interface FieldMapping {
 export interface ValidationResult {
   status: ValidationStatus;
   messages: string[];
+  autoFixSuggestions?: AutoFixSuggestion[];
+}
+
+export interface AutoFixSuggestion {
+  type: AutoFixType;
+  affectedGoalId?: string;
+  missingGoalNumber?: string;
+  suggestedTitle?: string;
+  suggestedOwner?: string;
+  suggestedLevel?: 0 | 1 | 2;
+  action: string; // Human-readable description
+  data?: any; // Additional context
 }
 
 export interface ImportProgress {

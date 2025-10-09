@@ -9,8 +9,8 @@ import {
   type SortingState,
   type ColumnFiltersState
 } from '@tanstack/react-table';
-import { AlertCircle, CheckCircle, Edit2, Trash2, AlertTriangle } from 'lucide-react';
-import type { StagedGoal } from '../../lib/types/import.types';
+import { AlertCircle, CheckCircle, Edit2, Trash2, AlertTriangle, Wrench, Sparkles } from 'lucide-react';
+import type { StagedGoal, AutoFixSuggestion } from '../../lib/types/import.types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 
@@ -18,6 +18,8 @@ export interface StagedDataTableProps {
   data: StagedGoal[];
   onEdit?: (goal: StagedGoal) => void;
   onDelete?: (goalId: string) => void;
+  onFix?: (goal: StagedGoal, suggestion: AutoFixSuggestion) => void;
+  onBulkAutoFix?: () => void;
   onBulkAction?: (action: 'delete' | 'mark-valid', selectedIds: string[]) => void;
 }
 
@@ -27,18 +29,21 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
   data,
   onEdit,
   onDelete,
+  onFix,
+  onBulkAutoFix,
   onBulkAction
 }) => {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = React.useState({});
-  const [filterStatus, setFilterStatus] = React.useState<'all' | 'errors' | 'warnings'>('all');
+  const [filterStatus, setFilterStatus] = React.useState<'all' | 'errors' | 'warnings' | 'fixable'>('all');
 
   // Filter data based on status filter
   const filteredData = useMemo(() => {
     if (filterStatus === 'all') return data;
     if (filterStatus === 'errors') return data.filter(g => g.validation_status === 'error');
     if (filterStatus === 'warnings') return data.filter(g => g.validation_status === 'warning');
+    if (filterStatus === 'fixable') return data.filter(g => g.validation_status === 'fixable');
     return data;
   }, [data, filterStatus]);
 
@@ -68,11 +73,16 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
         header: 'Status',
         cell: (info) => {
           const status = info.getValue();
+          const row = info.row.original;
+
           if (status === 'valid') {
             return (
               <div className="flex items-center text-green-600">
                 <CheckCircle className="h-4 w-4 mr-1" />
                 <span className="text-xs font-medium">Valid</span>
+                {row.is_auto_generated && (
+                  <Sparkles className="h-3 w-3 ml-1" title="Auto-generated" />
+                )}
               </div>
             );
           }
@@ -81,6 +91,14 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
               <div className="flex items-center text-yellow-600">
                 <AlertTriangle className="h-4 w-4 mr-1" />
                 <span className="text-xs font-medium">Warning</span>
+              </div>
+            );
+          }
+          if (status === 'fixable') {
+            return (
+              <div className="flex items-center text-blue-600">
+                <Wrench className="h-4 w-4 mr-1" />
+                <span className="text-xs font-medium">Fixable</span>
               </div>
             );
           }
@@ -95,9 +113,17 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
       }),
       columnHelper.accessor('row_number', {
         header: 'Row',
-        cell: (info) => (
-          <span className="text-sm text-muted-foreground">{info.getValue()}</span>
-        ),
+        cell: (info) => {
+          const rowNum = info.getValue();
+          if (rowNum === -1) {
+            return (
+              <span className="text-xs text-blue-600 font-medium">NEW</span>
+            );
+          }
+          return (
+            <span className="text-sm text-muted-foreground">{rowNum}</span>
+          );
+        },
         size: 60
       }),
       columnHelper.accessor('goal_number', {
@@ -112,8 +138,9 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
         cell: (info) => {
           const level = info.getValue();
           const labels = ['Goal', 'Strategy', 'Action'];
+          const colors = ['bg-purple-100 text-purple-700', 'bg-blue-100 text-blue-700', 'bg-green-100 text-green-700'];
           return (
-            <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+            <span className={`text-xs px-2 py-1 rounded-full ${level !== undefined ? colors[level] : 'bg-gray-100 text-gray-700'}`}>
               {level !== undefined ? labels[level] : '-'}
             </span>
           );
@@ -140,12 +167,16 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
         header: 'Issues',
         cell: (info) => {
           const messages = info.getValue() || [];
+          const row = info.row.original;
+
           if (messages.length === 0) return <span className="text-xs text-muted-foreground">None</span>;
+
+          const statusColor = row.validation_status === 'fixable' ? 'text-blue-600' : 'text-red-600';
 
           return (
             <div className="space-y-1">
               {messages.slice(0, 2).map((msg, idx) => (
-                <p key={idx} className="text-xs text-red-600">• {msg}</p>
+                <p key={idx} className={`text-xs ${statusColor}`}>• {msg}</p>
               ))}
               {messages.length > 2 && (
                 <p className="text-xs text-muted-foreground">+{messages.length - 2} more</p>
@@ -175,32 +206,47 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
       columnHelper.display({
         id: 'actions',
         header: 'Actions',
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            {onEdit && (
-              <button
-                onClick={() => onEdit(row.original)}
-                className="text-blue-600 hover:text-blue-800"
-                title="Edit"
-              >
-                <Edit2 className="h-4 w-4" />
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={() => onDelete(row.original.id)}
-                className="text-red-600 hover:text-red-800"
-                title="Delete"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        ),
-        size: 100
+        cell: ({ row }) => {
+          const goal = row.original;
+          const hasFix = goal.validation_status === 'fixable' && goal.auto_fix_suggestions && goal.auto_fix_suggestions.length > 0;
+
+          return (
+            <div className="flex items-center gap-2">
+              {hasFix && onFix && (
+                <button
+                  onClick={() => onFix(goal, goal.auto_fix_suggestions![0])}
+                  className="text-blue-600 hover:text-blue-800 font-medium text-xs flex items-center gap-1"
+                  title="Auto-fix this issue"
+                >
+                  <Wrench className="h-3 w-3" />
+                  Fix
+                </button>
+              )}
+              {onEdit && !goal.is_auto_generated && (
+                <button
+                  onClick={() => onEdit(goal)}
+                  className="text-gray-600 hover:text-gray-800"
+                  title="Edit"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={() => onDelete(goal.id)}
+                  className="text-red-600 hover:text-red-800"
+                  title="Delete"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          );
+        },
+        size: 120
       })
     ],
-    [onEdit, onDelete]
+    [onEdit, onDelete, onFix]
   );
 
   const table = useReactTable({
@@ -227,14 +273,15 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
   const stats = useMemo(() => {
     const errors = data.filter(g => g.validation_status === 'error').length;
     const warnings = data.filter(g => g.validation_status === 'warning').length;
+    const fixable = data.filter(g => g.validation_status === 'fixable').length;
     const valid = data.filter(g => g.validation_status === 'valid').length;
-    return { errors, warnings, valid, total: data.length };
+    return { errors, warnings, fixable, valid, total: data.length };
   }, [data]);
 
   return (
     <div className="space-y-4">
       {/* Summary Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-5 gap-4">
         <div className="bg-card border border-border rounded-lg p-4">
           <p className="text-sm text-muted-foreground">Total Rows</p>
           <p className="text-2xl font-bold">{stats.total}</p>
@@ -242,6 +289,10 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <p className="text-sm text-green-700">Valid</p>
           <p className="text-2xl font-bold text-green-700">{stats.valid}</p>
+        </div>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm text-blue-700">Fixable</p>
+          <p className="text-2xl font-bold text-blue-700">{stats.fixable}</p>
         </div>
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p className="text-sm text-yellow-700">Warnings</p>
@@ -252,6 +303,27 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
           <p className="text-2xl font-bold text-red-700">{stats.errors}</p>
         </div>
       </div>
+
+      {/* Auto-Fix Banner */}
+      {stats.fixable > 0 && onBulkAutoFix && (
+        <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center space-x-3">
+            <Wrench className="h-5 w-5 text-blue-600" />
+            <div>
+              <p className="font-medium text-blue-900">
+                {stats.fixable} issue{stats.fixable > 1 ? 's' : ''} can be auto-fixed
+              </p>
+              <p className="text-sm text-blue-700">
+                Missing parent goals will be created as placeholders
+              </p>
+            </div>
+          </div>
+          <Button onClick={onBulkAutoFix} size="sm">
+            <Wrench className="h-4 w-4 mr-2" />
+            Fix All
+          </Button>
+        </div>
+      )}
 
       {/* Filters and Actions */}
       <div className="flex items-center justify-between">
@@ -266,6 +338,18 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
           >
             All ({stats.total})
           </button>
+          {stats.fixable > 0 && (
+            <button
+              onClick={() => setFilterStatus('fixable')}
+              className={`px-3 py-1 rounded-md text-sm font-medium ${
+                filterStatus === 'fixable'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-muted text-foreground hover:bg-muted/80'
+              }`}
+            >
+              Fixable ({stats.fixable})
+            </button>
+          )}
           <button
             onClick={() => setFilterStatus('errors')}
             className={`px-3 py-1 rounded-md text-sm font-medium ${
@@ -337,6 +421,10 @@ export const StagedDataTable: React.FC<StagedDataTableProps> = ({
                       ? 'bg-red-50/50'
                       : row.original.validation_status === 'warning'
                       ? 'bg-yellow-50/50'
+                      : row.original.validation_status === 'fixable'
+                      ? 'bg-blue-50/50'
+                      : row.original.is_auto_generated
+                      ? 'bg-green-50/30 border-l-4 border-l-green-500'
                       : ''
                   }`}
                 >

@@ -95,7 +95,8 @@ export class ImportService {
     const stagedGoalsToInsert = parsedData.goals.map(goal => {
       const validation = validationResults.get(goal.row_number) || {
         status: 'valid' as const,
-        messages: []
+        messages: [],
+        autoFixSuggestions: []
       };
 
       return {
@@ -110,7 +111,9 @@ export class ImportService {
         owner_name: goal.owner_name,
         validation_status: validation.status,
         validation_messages: validation.messages,
+        auto_fix_suggestions: validation.autoFixSuggestions || [],
         is_mapped: false,
+        is_auto_generated: false,
         action: 'create'
       };
     });
