@@ -40,14 +40,24 @@ export interface VisualizationOption {
 }
 
 export const visualizationOptions: VisualizationOption[] = [
+  // Ready metrics - alphabetical order
   {
-    id: 'percentage',
-    name: 'Percentage',
-    description: 'Show a percentage with optional target and progress bar',
-    icon: Percent,
-    preview: '/previews/percentage.svg',
-    dataFields: ['currentValue', 'targetValue', 'label', 'showProgressBar'],
-    status: 'coming-soon'
+    id: 'likert-scale',
+    name: 'Likert Scale',
+    description: 'Track survey responses on rating scales (1-5, 1-7, etc.)',
+    icon: SlidersHorizontal,
+    preview: '/previews/likert-scale.svg',
+    dataFields: ['scaleMin', 'scaleMax', 'dataPoints', 'scaleLabel', 'targetValue'],
+    status: 'ready'
+  },
+  {
+    id: 'narrative',
+    name: 'Narrative/Rich Text',
+    description: 'Rich text content with formatting, links, and structured information',
+    icon: FileText,
+    preview: '/previews/narrative.svg',
+    dataFields: ['content', 'title', 'allowedTags'],
+    status: 'ready'
   },
   {
     id: 'number',
@@ -67,6 +77,7 @@ export const visualizationOptions: VisualizationOption[] = [
     dataFields: ['ratioValue', 'label', 'showTarget'],
     status: 'ready'
   },
+  // Coming soon metrics - alphabetical order
   {
     id: 'bar-chart',
     name: 'Bar Chart',
@@ -74,15 +85,6 @@ export const visualizationOptions: VisualizationOption[] = [
     icon: BarChart3,
     preview: '/previews/bar-chart.svg',
     dataFields: ['dataPoints', 'xAxisLabel', 'yAxisLabel', 'showLegend'],
-    status: 'coming-soon'
-  },
-  {
-    id: 'line-chart',
-    name: 'Line Chart',
-    description: 'Show trends and changes over time',
-    icon: LineChart,
-    preview: '/previews/line-chart.svg',
-    dataFields: ['dataPoints', 'xAxisLabel', 'yAxisLabel', 'showArea'],
     status: 'coming-soon'
   },
   {
@@ -104,12 +106,21 @@ export const visualizationOptions: VisualizationOption[] = [
     status: 'coming-soon'
   },
   {
-    id: 'survey',
-    name: 'Survey Results',
-    description: 'Display survey data with multiple sources and trends',
-    icon: Activity,
-    preview: '/previews/survey.svg',
-    dataFields: ['surveyData', 'scale', 'sources', 'narrative'],
+    id: 'line-chart',
+    name: 'Line Chart',
+    description: 'Show trends and changes over time',
+    icon: LineChart,
+    preview: '/previews/line-chart.svg',
+    dataFields: ['dataPoints', 'xAxisLabel', 'yAxisLabel', 'showArea'],
+    status: 'coming-soon'
+  },
+  {
+    id: 'percentage',
+    name: 'Percentage',
+    description: 'Show a percentage with optional target and progress bar',
+    icon: Percent,
+    preview: '/previews/percentage.svg',
+    dataFields: ['currentValue', 'targetValue', 'label', 'showProgressBar'],
     status: 'coming-soon'
   },
   {
@@ -122,22 +133,13 @@ export const visualizationOptions: VisualizationOption[] = [
     status: 'coming-soon'
   },
   {
-    id: 'likert-scale',
-    name: 'Likert Scale',
-    description: 'Track survey responses on rating scales (1-5, 1-7, etc.)',
-    icon: SlidersHorizontal,
-    preview: '/previews/likert-scale.svg',
-    dataFields: ['scaleMin', 'scaleMax', 'dataPoints', 'scaleLabel', 'targetValue'],
-    status: 'ready'
-  },
-  {
-    id: 'narrative',
-    name: 'Narrative/Rich Text',
-    description: 'Rich text content with formatting, links, and structured information',
-    icon: FileText,
-    preview: '/previews/narrative.svg',
-    dataFields: ['content', 'title', 'allowedTags'],
-    status: 'ready'
+    id: 'survey',
+    name: 'Survey Results',
+    description: 'Display survey data with multiple sources and trends',
+    icon: Activity,
+    preview: '/previews/survey.svg',
+    dataFields: ['surveyData', 'scale', 'sources', 'narrative'],
+    status: 'coming-soon'
   }
 ];
 

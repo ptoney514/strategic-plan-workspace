@@ -82,11 +82,21 @@ export function MetricTypeSelector({ selectedType, onSelect }: MetricTypeSelecto
                   {option.description}
                 </p>
 
-                {/* Visual Preview Placeholder */}
+                {/* Visual Preview */}
                 <div className="pt-2 border-t border-border">
-                  <div className="h-16 bg-gradient-to-br from-muted/50 to-muted rounded flex items-center justify-center">
-                    <span className="text-[10px] text-muted-foreground">Preview</span>
-                  </div>
+                  {isReady ? (
+                    <div className="h-16 rounded overflow-hidden bg-white border border-border">
+                      <img
+                        src={option.preview}
+                        alt={`${option.name} preview`}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-16 bg-gradient-to-br from-muted/50 to-muted rounded flex items-center justify-center">
+                      <span className="text-[10px] text-muted-foreground">Preview</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
