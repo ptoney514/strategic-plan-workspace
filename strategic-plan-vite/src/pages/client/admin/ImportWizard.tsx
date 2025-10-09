@@ -15,6 +15,7 @@ import { useGoals } from '../../../hooks/useGoals';
 import { ExcelParserService } from '../../../lib/services/excelParser.service';
 import { ImportService } from '../../../lib/services/import.service';
 import { AutoFixService } from '../../../lib/services/autoFix.service';
+import { GoalsService } from '../../../lib/services/goals.service';
 import { Button } from '../../../components/ui/Button';
 import { Progress } from '../../../components/ui/Progress';
 import { Alert } from '../../../components/ui/Alert';
@@ -56,10 +57,19 @@ export function ImportWizard() {
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file type
       if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
         setError('Please select a valid Excel file (.xlsx or .xls)');
         return;
       }
+
+      // Validate file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+      if (file.size > maxSize) {
+        setError(`File size exceeds 10MB limit. Please use a smaller file. Current size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        return;
+      }
+
       setSelectedFile(file);
       setError(null);
     }
@@ -69,10 +79,19 @@ export function ImportWizard() {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (file) {
+      // Validate file type
       if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
         setError('Please select a valid Excel file (.xlsx or .xls)');
         return;
       }
+
+      // Validate file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+      if (file.size > maxSize) {
+        setError(`File size exceeds 10MB limit. Please use a smaller file. Current size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        return;
+      }
+
       setSelectedFile(file);
       setError(null);
     }
@@ -115,15 +134,14 @@ export function ImportWizard() {
 
       // Fetch existing goals for validation
       console.log('Fetching existing goals for validation...');
-      const { data: existingGoals } = await import('../../../lib/services').then(m =>
-        m.GoalsService.getByDistrict(district.id)
-          .then(data => ({ data }))
-          .catch(error => {
-            console.warn('Could not fetch existing goals:', error);
-            return { data: [] };
-          })
-      );
-      console.log('Existing goals:', existingGoals);
+      let existingGoals = [];
+      try {
+        existingGoals = await GoalsService.getByDistrict(district.id);
+        console.log('Existing goals:', existingGoals);
+      } catch (error) {
+        console.warn('Could not fetch existing goals:', error);
+        // Continue with empty array - import can still proceed
+      }
 
       // Stage data
       console.log('Staging data...');

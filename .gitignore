@@ -2,7 +2,8 @@
 
 # Dependencies
 **/node_modules/
-**/package-lock.json
+# Allow package-lock.json for CI/CD consistency
+# **/package-lock.json
 
 # Environment variables
 **/.env
@@ -60,3 +61,4 @@ Desktop.ini
 !PROJECT_TEMPLATE.md
 !TECHNICAL_STANDARDS.md
 !TESTING_STRATEGY.md
+.vercel
