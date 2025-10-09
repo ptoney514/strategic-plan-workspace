@@ -4,6 +4,8 @@ import { buildGoalHierarchy, getNextGoalNumber } from '../types';
 
 export class GoalsService {
   static async getByDistrict(districtId: string): Promise<HierarchicalGoal[]> {
+    console.log('[GoalsService] Fetching goals for district:', districtId);
+
     const { data: goals, error } = await supabase
       .from('spb_goals')
       .select(`
@@ -14,7 +16,13 @@ export class GoalsService {
       .order('goal_number');
 
     if (error) {
-      console.error('Error fetching goals:', error);
+      console.error('[GoalsService] Error fetching goals:', error);
+      console.error('[GoalsService] Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       throw error;
     }
 

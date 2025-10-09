@@ -6,7 +6,8 @@ export function useGoals(districtId: string) {
   return useQuery({
     queryKey: ['goals', districtId],
     queryFn: () => GoalsService.getByDistrict(districtId),
-    enabled: !!districtId,
+    enabled: !!districtId && districtId.length > 0,
+    retry: false, // Don't retry on failure
   });
 }
 

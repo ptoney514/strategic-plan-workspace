@@ -26,6 +26,7 @@ import { AdminMetrics } from './pages/client/admin/AdminMetrics';
 import { AdminAudit } from './pages/client/admin/AdminAudit';
 import { AdminSettings } from './pages/client/admin/AdminSettings';
 import { ObjectiveBuilder } from './pages/client/admin/ObjectiveBuilder';
+import { ImportWizard } from './pages/client/admin/ImportWizard';
 
 function App() {
   return (
@@ -59,6 +60,7 @@ function App() {
           <Route path="objectives/new" element={<ObjectiveBuilder />} />
           <Route path="objectives/:objectiveId/edit" element={<ObjectiveBuilder />} />
           <Route path="goals/:goalId/edit" element={<ObjectiveBuilder />} />
+          <Route path="import" element={<ImportWizard />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="audit" element={<AdminAudit />} />
         </Route>

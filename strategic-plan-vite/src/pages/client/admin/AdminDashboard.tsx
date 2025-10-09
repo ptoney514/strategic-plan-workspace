@@ -123,6 +123,14 @@ export function AdminDashboard() {
       iconColor: 'text-blue-600'
     },
     {
+      title: 'Import from Excel',
+      description: 'Upload strategic plan data',
+      icon: Upload,
+      link: `/${slug}/admin/import`,
+      gradient: 'from-teal-500 to-cyan-600',
+      iconColor: 'text-teal-600'
+    },
+    {
       title: 'Review Goals',
       description: 'Quarterly status review',
       icon: Target,
