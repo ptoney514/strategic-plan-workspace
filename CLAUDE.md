@@ -232,3 +232,44 @@ Before concluding:
 - ✅ Document significant changes
 - ✅ Test locally before committing
 - ✅ Update relevant documentation
+---
+
+# Claude Code Development Guidelines
+
+## Branching Strategy
+**We use GitHub Flow:**
+- `main` is always deployable
+- Create feature branches from `main`: `feature/issue-{number}-description`
+- Open PRs early (draft mode for work-in-progress)
+- Reference issues: "Closes #123" in PR description
+- Merge to `main` after CI passes + review
+- Delete branch after merge
+
+**Branch Naming:**
+- Features: `feature/issue-123-add-login`
+- Bugs: `fix/issue-456-null-pointer`
+- Docs: `docs/issue-789-api-guide`
+- Refactor: `refactor/improve-auth`
+- Chore: `chore/update-dependencies`
+
+## Working with Claude Code
+- Always reference issue numbers in branch names and commits
+- Use conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`
+- Follow project conventions in `package.json` scripts
+- Run tests before pushing: `npm test` or `yarn test`
+
+## Pull Request Process
+1. Create branch from `main`
+2. Make changes, commit often
+3. Open **draft PR** early for visibility
+4. Reference issue: "Closes #123" or "Fixes #456"
+5. Request review when ready
+6. Address feedback, keep PR updated
+7. Merge when CI green + approved
+8. Branch auto-deletes after merge
+
+## Code Review Standards
+- PRs should be < 400 lines when possible
+- Include tests for new features
+- Update docs if API changes
+- Ensure CI passes before requesting review
