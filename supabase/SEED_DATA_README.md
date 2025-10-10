@@ -11,7 +11,18 @@ To load the seed data into your local database:
 ```bash
 # Reset the database and apply all migrations + seed data
 supabase db reset
+
+# Optional: Validate seed data loaded correctly
+docker exec -i supabase_db_strategic-plan-workspace psql -U postgres -d postgres < supabase/seed_data_validation.sql
 ```
+
+The validation script verifies:
+- District counts (2 expected)
+- Goal hierarchy (16 Westside, 3 Eastside)
+- Metric types and counts (9+ expected)
+- Narrative content
+- Status value validity
+- Foreign key relationships
 
 ## Data Structure
 
@@ -162,13 +173,32 @@ ORDER BY g.goal_number;
 
 ## UUID Format
 
-All UUIDs follow this pattern:
-- **Districts**: `a0000000-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
-- **Goals**: `b0000xxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
-- **Metrics**: `a0000xxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
-- **Narratives**: `a0001xxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
+All UUIDs in the seed data follow a structured pattern for easy identification:
 
-**Important**: UUIDs must use valid hexadecimal characters (0-9, a-f). Invalid characters like 'm', 'n', 'c' will cause errors.
+| Entity Type | Pattern | Example | Prefix Meaning |
+|------------|---------|---------|----------------|
+| **Districts** | `a0000000-xxxx-xxxx-xxxx-xxxxxxxxxxxx` | `a0000000-0000-0000-0000-000000000001` | `a` = administrative entities |
+| **Goals** | `b0000xxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` | `b0000001-0001-0000-0000-000000000000` | `b` = business/goal entities |
+| **Metrics** | `a0000xxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` | `a0000001-0001-0001-0001-000000000000` | `a` = measurement/analytics |
+| **Narratives** | `a0001xxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` | `a0001001-0000-0000-0000-000000000001` | `a0001` = narrative content |
+
+### UUID Pattern Logic
+
+**Why Different Prefixes?**
+- Prefixes (`a`, `b`) make it easy to identify entity types when debugging or viewing raw data
+- Helps prevent accidental UUID collisions between different entity types
+- Makes database queries more readable when viewing UUIDs
+
+**Test Data vs Production**
+- ⚠️ **Important**: These structured UUIDs are for **test/seed data only**
+- Production data should use PostgreSQL's `gen_random_uuid()` for true randomness
+- Structured UUIDs make seed data predictable and easier to reference in documentation
+
+**Technical Requirements**
+- UUIDs must use **valid hexadecimal characters only** (0-9, a-f)
+- Invalid characters like `m`, `n`, `c`, `g`, etc. will cause PostgreSQL errors
+- Must be exactly 36 characters: 32 hex digits + 4 hyphens
+- Format: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
 
 ## Known Limitations
 

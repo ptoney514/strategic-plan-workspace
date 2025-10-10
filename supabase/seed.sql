@@ -149,26 +149,26 @@ INSERT INTO public.spb_goals (
 -- Metrics for Goal 1.1.1 (K-2 Reading Foundation)
 INSERT INTO public.spb_metrics (
   id, goal_id, name, metric_type, data_source, current_value, target_value, unit,
-  status, chart_type, is_higher_better, metric_calculation_type, created_at, updated_at
+  status, chart_type, is_higher_better, metric_calculation_type, baseline_value, created_at, updated_at
 ) VALUES
-  ('a0000001-0001-0001-0001-000000000000', 'b0000001-0001-0001-0000-000000000000', 'K-2 Reading Proficiency Rate', 'percent', 'state_testing', 85, 90, '%', 'near-target', 'bar', true, 'percentage', NOW(), NOW()),
-  ('a0000001-0001-0001-0002-000000000000', 'b0000001-0001-0001-0000-000000000000', 'Benchmark Assessment Pass Rate', 'percent', 'map_data', 88, 92, '%', 'on-target', 'line', true, 'percentage', NOW(), NOW());
+  ('a0000001-0001-0001-0001-000000000000', 'b0000001-0001-0001-0000-000000000000', 'K-2 Reading Proficiency Rate', 'percent', 'state_testing', 85, 90, '%', 'near-target', 'bar', true, 'percentage', NULL, NOW(), NOW()),
+  ('a0000001-0001-0001-0002-000000000000', 'b0000001-0001-0001-0000-000000000000', 'Benchmark Assessment Pass Rate', 'percent', 'map_data', 88, 92, '%', 'on-target', 'line', true, 'percentage', NULL, NOW(), NOW());
 
 -- Metrics for Goal 1.1.2 (Grade 3-5 Reading)
 INSERT INTO public.spb_metrics (
   id, goal_id, name, metric_type, data_source, current_value, target_value, unit,
-  status, chart_type, is_higher_better, metric_calculation_type, created_at, updated_at
+  status, chart_type, is_higher_better, metric_calculation_type, baseline_value, created_at, updated_at
 ) VALUES
-  ('a0000001-0001-0002-0001-000000000000', 'b0000001-0001-0002-0000-000000000000', 'Reading Comprehension Score', 'rating', 'state_testing', 3.8, 4.0, 'out of 5', 'near-target', 'gauge', true, 'numeric', NOW(), NOW()),
-  ('a0000001-0001-0002-0002-000000000000', 'b0000001-0001-0002-0000-000000000000', 'Fluency Words Per Minute', 'number', 'map_data', 145, 160, 'wpm', 'off-target', 'bar', true, 'numeric', NOW(), NOW());
+  ('a0000001-0001-0002-0001-000000000000', 'b0000001-0001-0002-0000-000000000000', 'Reading Comprehension Score', 'rating', 'state_testing', 3.8, 4.0, 'out of 5', 'near-target', 'gauge', true, 'numeric', NULL, NOW(), NOW()),
+  ('a0000001-0001-0002-0002-000000000000', 'b0000001-0001-0002-0000-000000000000', 'Fluency Words Per Minute', 'number', 'map_data', 145, 160, 'wpm', 'off-target', 'bar', true, 'numeric', NULL, NOW(), NOW());
 
 -- Metrics for Goal 1.2.1 (Elementary Math)
 INSERT INTO public.spb_metrics (
   id, goal_id, name, metric_type, data_source, current_value, target_value, unit,
-  status, chart_type, is_higher_better, metric_calculation_type, created_at, updated_at
+  status, chart_type, is_higher_better, metric_calculation_type, baseline_value, created_at, updated_at
 ) VALUES
-  ('a0000001-0002-0001-0001-000000000000', 'b0000001-0002-0001-0000-000000000000', 'Math Proficiency Rate', 'percent', 'state_testing', 82, 85, '%', 'on-target', 'bar', true, 'percentage', NOW(), NOW()),
-  ('a0000001-0002-0001-0002-000000000000', 'b0000001-0002-0001-0000-000000000000', 'Number Sense Assessment', 'percent', 'map_data', 90, 88, '%', 'on-target', 'line', true, 'percentage', NOW(), NOW());
+  ('a0000001-0002-0001-0001-000000000000', 'b0000001-0002-0001-0000-000000000000', 'Math Proficiency Rate', 'percent', 'state_testing', 82, 85, '%', 'on-target', 'bar', true, 'percentage', NULL, NOW(), NOW()),
+  ('a0000001-0002-0001-0002-000000000000', 'b0000001-0002-0001-0000-000000000000', 'Number Sense Assessment', 'percent', 'map_data', 90, 88, '%', 'on-target', 'line', true, 'percentage', NULL, NOW(), NOW());
 
 -- Metrics for Goal 1.5 (Student Engagement)
 INSERT INTO public.spb_metrics (
@@ -181,9 +181,9 @@ INSERT INTO public.spb_metrics (
 -- Narrative metric example for Goal 2.1 (Instructional Quality)
 INSERT INTO public.spb_metrics (
   id, goal_id, name, metric_type, data_source, current_value, target_value, unit,
-  status, chart_type, is_higher_better, metric_calculation_type, created_at, updated_at
+  status, chart_type, is_higher_better, metric_calculation_type, baseline_value, created_at, updated_at
 ) VALUES
-  ('a0000002-0001-0000-0001-000000000000', 'b0000002-0001-0000-0000-000000000000', 'Instructional Framework Implementation', 'narrative', 'narrative', NULL, NULL, NULL, NULL, 'narrative', true, 'qualitative', NOW(), NOW());
+  ('a0000002-0001-0000-0001-000000000000', 'b0000002-0001-0000-0000-000000000000', 'Instructional Framework Implementation', 'narrative', 'narrative', NULL, NULL, NULL, NULL, 'narrative', true, 'qualitative', NULL, NOW(), NOW());
 
 -- Add narrative content for the narrative metric
 INSERT INTO public.spb_metric_narratives (
@@ -199,49 +199,20 @@ INSERT INTO public.spb_metric_narratives (
    'a0000000-0000-0000-0000-000000000003', 'Dr. Sarah Johnson',
    true, NOW(), NOW(), NOW());
 
--- Metrics for Eastside Goals
--- Temporarily commented out to test Westside
--- INSERT INTO public.spb_metrics (
---   id, goal_id, name, metric_type, data_source, current_value, target_value, unit,
---   status, chart_type, is_higher_better, metric_calculation_type, created_at, updated_at
--- ) VALUES
---   ('a0000003-0001-0000-0001-000000000000', 'b0001001-0001-0000-0000-000000000000', '4-Year Graduation Rate', 'percent', 'state_testing', 94, 95, '%', 'on-target', 'line', true, 'percentage', NOW(), NOW()),
---   ('a0000003-0002-0000-0001-000000000000', 'b0001001-0002-0000-0000-000000000000', 'College Enrollment Rate', 'percent', 'total_number', 75, 80, '%', 'near-target', 'bar', true, 'percentage', NOW(), NOW());
+-- TODO: Add Eastside metrics in future iteration for comparison testing
 
 -- ============================================================================
 -- STEP 6: Time Series Data for Metrics
 -- ============================================================================
--- TODO: Add time series data with proper district_id and period_type fields
--- Currently commented out - will be added in future iteration
-
--- -- Time series for K-2 Reading Proficiency
--- INSERT INTO public.spb_metric_time_series (metric_id, district_id, period, period_type, target_value, actual_value, created_at) VALUES
---   ('a0000001-0001-0001-0001-000000000000', 'a0000000-0000-0000-0000-000000000002', '2023-Q1', 'quarterly', 88, 82, NOW()),
---   ('a0000001-0001-0001-0001-000000000000', 'a0000000-0000-0000-0000-000000000002', '2023-Q2', 'quarterly', 89, 84, NOW()),
---   ('a0000001-0001-0001-0001-000000000000', 'a0000000-0000-0000-0000-000000000002', '2023-Q3', 'quarterly', 89, 85, NOW()),
---   ('a0000001-0001-0001-0001-000000000000', 'a0000000-0000-0000-0000-000000000002', '2023-Q4', 'quarterly', 90, 85, NOW());
+-- TODO: Add time series data with proper district_id and period_type fields in future iteration
 
 -- ============================================================================
 -- STEP 7: Calculate Overall Progress for All Goals
 -- ============================================================================
-
--- TODO: Fix the recalculate_district_progress function bug before calling
--- The function has an issue with RETURNING 1 INTO when multiple rows are updated
--- For now, skipping progress calculation - can be run manually later
-
--- -- Recalculate progress for Westside
--- DO $$
--- BEGIN
---   PERFORM recalculate_district_progress('a0000000-0000-0000-0000-000000000002');
---   RAISE NOTICE 'Progress recalculated for Westside';
--- END $$;
-
--- -- Recalculate progress for Eastside
--- DO $$
--- BEGIN
---   PERFORM recalculate_district_progress('a0000000-0000-0000-0000-000000000001');
---   RAISE NOTICE 'Progress recalculated for Eastside';
--- END $$;
+-- TODO: Progress calculation disabled - see issue #8
+-- Bug: RETURNING 1 INTO fails with multiple row updates in recalculate_district_progress()
+-- Issue: https://github.com/ptoney514/strategic-plan-workspace/issues/8
+-- Can be run manually after bug is fixed
 
 -- ============================================================================
 -- STEP 8: Verification & Summary
